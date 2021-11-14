@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,17 +12,22 @@ namespace tree_demo_back
         MODULE,
         ITEMSGROUP,
         CONSTRAINT_CONDITION,
-        CONSTRAINT_CONSEQUENCE,
-        GENERATE_SPECIFYING
+        CONSTRAINT_FEATURE_CONSEQUENCE,
+        CONSTRAINT_MODULE_CONSEQUENCE_INSTRUCTION,
+        CONSTRAINT_MODULE_CONSEQUENCE_POINTER,
+        GENERATE_SPECIFYING,
+        REPEAT
     }
 
     public delegate void TokenAction();
+
+    public delegate ParserDepth NextDepthGetter(ParserDepth currentDepth);
 
     public class Rule
     {
         public List<ParserDepth> ValidDepth { get; set; }
 
-        public ParserDepth NextDepth { get; set; }
+        public NextDepthGetter NextDepth { get; set; }
 
         public TokenAction PerformAction { get; set; }
     }
@@ -64,11 +70,7 @@ namespace tree_demo_back
                                     new ConstraintCondition() {
                                         СonditionOptions = new List<string>()
                                     }
-                                },
-                Сonsequence = new ConstraintConsequence()
-                {
-                    ValidOptions = new List<string>()
-                }
+                                }
             });
         }
 
@@ -78,6 +80,19 @@ namespace tree_demo_back
             {
                 СonditionOptions = new List<string>()
             });
+        }
+
+        void AddFeatureConsequence()
+        {
+            modules.Last().Constraints.Last().Consequence = new ConstraintFeatureConsequence()
+            {
+                ValidOptions = new List<string>()
+            };
+        }
+
+        void AddModuleConsequence()
+        {
+            modules.Last().Constraints.Last().Consequence = new ConstraintModuleConsequence();
         }
 
         void CheckModuleNameDuplicates()
@@ -138,7 +153,8 @@ namespace tree_demo_back
 
         void CheckConstraintConsequenceName()
         {
-            var consequenceName = modules.Last().Constraints.Last().Сonsequence.СlassificationFeatureName;
+            var consequenceName = (modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence)
+                .СlassificationFeatureName;
 
             var featureNames = modules.Last().ClassificationFeatures.Select(feature => feature.Name).ToList();
 
@@ -173,14 +189,15 @@ namespace tree_demo_back
 
         void CheckConstraintConsequeceOptions()
         {
-            var options = modules.Last().Constraints.Last().Сonsequence.ValidOptions;
+            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence;
+            var options = consequence.ValidOptions;
 
             if (options.Count() != options.Distinct().Count())
             {
                 error($"There are the same options in constarint consequence: module '{modules.Last().Name}'.");
             }
 
-            var consequenceName = modules.Last().Constraints.Last().Сonsequence.СlassificationFeatureName;
+            var consequenceName = consequence.СlassificationFeatureName;
 
             var targetItemsGroup = modules.Last().ClassificationFeatures.First(feature => feature.Name == consequenceName);
 
@@ -194,15 +211,24 @@ namespace tree_demo_back
             }
         }
 
-        void CheckItemsGroup()
+        void HandleItemsGroup()
         {
-            if (modules.Last().ClassificationFeatures.Last().Name == null)
+            var ItemsGroup = modules.Last().ClassificationFeatures.Last();
+            if (ItemsGroup.Name == null)
             {
                 error($"Items group of the '{modules.Last().Name}' module must have a name.");
             }
-            else if (modules.Last().ClassificationFeatures.Last().Items.Count == 0)
+            else if (ItemsGroup.Items.Count == 0)
             {
                 error($"Items group '{modules.Last().ClassificationFeatures.Last().Name}' of the '{modules.Last().Name}' module must not be empty.");
+            }
+            if (ItemsGroup.Items.All(item => int.TryParse(item, out var _)))
+            {
+                ItemsGroup.Type = ItemsGroupType.INTEGER;
+            }
+            else
+            {
+                ItemsGroup.Type = ItemsGroupType.ENUM;
             }
         }
 
@@ -222,20 +248,67 @@ namespace tree_demo_back
             return result;
         }
 
-        bool CheckConstraintConsequence()
+        bool CheckFeatureConstraintConsequence()
         {
             bool result = true;
-            if (modules.Last().Constraints.Last().Сonsequence.СlassificationFeatureName == null)
+            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence;
+            if (consequence.СlassificationFeatureName == null)
             {
                 error($"No consequence name. Module: {modules.Last().Name}.");
                 result = false;
             }
-            else if (modules.Last().Constraints.Last().Сonsequence.ValidOptions.Count == 0)
+            else if (consequence.ValidOptions.Count == 0)
             {
-                error($"Empty consequence. Module: {modules.Last().Name}. Consequence: {modules.Last().Constraints.Last().Сonsequence.СlassificationFeatureName}");
+                error($"Empty consequence. Module: {modules.Last().Name}. Consequence: {consequence.СlassificationFeatureName}");
                 result = false;
             }
             return result;
+        }
+
+        bool CheckModuleConsequenceInstruction()
+        {
+            bool result = true;
+            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintModuleConsequence;
+            var features = modules.Last().ClassificationFeatures;
+            if (consequence.FeatureName == null)
+            {
+                error($"Feature name and feature value must be provider in module constraint: module {modules.Last().Name}");
+                result = false;
+            }
+            else if (!features.Any(feature => feature.Name == consequence.FeatureName))
+            {
+                error($"Bad feature in module constraint: module {modules.Last().Name} {consequence.FeatureName}");
+                result = false;
+            }
+
+            return result;
+        }
+
+        bool CheckModuleConsequencePointer()
+        {
+            bool result = true;
+            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintModuleConsequence;
+            if (consequence.ModuleName == null)
+            {
+                error($"Module name must be provider in module constraint: module {modules.Last().Name}");
+                result = false;
+            }
+            else if (!CheckModuleNameExistence(consequence.ModuleName))
+            {
+                error($"There is not a module with name {consequence.ModuleName}");
+                result = false;
+            }
+            return result;
+        }
+
+        bool CheckFeatureExists(string name, ModuleM1 module)
+        {
+            return module.ClassificationFeatures.Where(feature => feature.Name == name).Count() != 0;
+        }
+
+        bool CheckFeatureIsInt(string name, ModuleM1 module)
+        {
+            return module.ClassificationFeatures.Find(feature => feature.Name == name).Type == ItemsGroupType.INTEGER;
         }
 
         public (int code, List<ModuleM1> ast, string message, int moduleIndex) Parse(string code)
@@ -251,17 +324,17 @@ namespace tree_demo_back
             var rules = new Dictionary<string, Rule>() {
                 { "Structuralist", new Rule() {
                     ValidDepth = new List<ParserDepth>() { ParserDepth.OUT },
-                    NextDepth = ParserDepth.ROOT,
+                    NextDepth = depth => ParserDepth.ROOT,
                     PerformAction = () => {}
                 } },
                 { "EndStructuralist", new Rule() {
                     ValidDepth = new List<ParserDepth>() { ParserDepth.ROOT },
-                    NextDepth = ParserDepth.OUT,
+                    NextDepth = depth => ParserDepth.OUT,
                     PerformAction = () => {}
                 } },
                 { "ModuleM1", new Rule() {
                     ValidDepth = new List<ParserDepth>() { ParserDepth.ROOT },
-                    NextDepth = ParserDepth.MODULE,
+                    NextDepth = depth => ParserDepth.MODULE,
                     PerformAction = () => {
                         AddNewModuleM1();
                     }
@@ -269,38 +342,44 @@ namespace tree_demo_back
                 { "EndModuleM1", new Rule() {
                     ValidDepth = new List<ParserDepth>() {
                         ParserDepth.MODULE,
-                        ParserDepth.CONSTRAINT_CONSEQUENCE },
-                    NextDepth = ParserDepth.ROOT,
+                        ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE,
+                        ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER },
+                    NextDepth = depth => ParserDepth.ROOT,
                     PerformAction = () => {
                         if (modules.Last().Name == null) {
                             error("Module must have a name");
                         }
-                        if (depth == ParserDepth.CONSTRAINT_CONSEQUENCE)
+                        else if (depth == ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE)
                         {
-                            CheckConstraintConsequence();
+                            CheckFeatureConstraintConsequence();
+                        }
+                        else if (depth == ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER)
+                        {
+                            CheckModuleConsequencePointer();
                         }
                     }
                 } },
                 { "ItemsGroup", new Rule() {
                     ValidDepth = new List<ParserDepth>() { ParserDepth.MODULE },
-                    NextDepth = ParserDepth.ITEMSGROUP,
+                    NextDepth = depth => ParserDepth.ITEMSGROUP,
                     PerformAction = () => {
                         AddItemsGroup();
                     }
                 } },
                 { "EndItemsGroup", new Rule() {
                     ValidDepth = new List<ParserDepth>() { ParserDepth.ITEMSGROUP },
-                    NextDepth = ParserDepth.MODULE,
+                    NextDepth = depth => ParserDepth.MODULE,
                     PerformAction = () => {
-                        CheckItemsGroup();
+                        HandleItemsGroup();
                     }
                 } },
                 { "ForCase", new Rule() {
                     ValidDepth = new List<ParserDepth>() {
                         ParserDepth.MODULE,
                         ParserDepth.CONSTRAINT_CONDITION,
-                        ParserDepth.CONSTRAINT_CONSEQUENCE },
-                    NextDepth = ParserDepth.CONSTRAINT_CONDITION,
+                        ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE,
+                        ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER },
+                    NextDepth = depth => ParserDepth.CONSTRAINT_CONDITION,
                     PerformAction = () => {
                         if (depth == ParserDepth.MODULE)
                         {
@@ -313,9 +392,16 @@ namespace tree_demo_back
                                 AddCondition();
                             }
                         }
-                        else if (depth == ParserDepth.CONSTRAINT_CONSEQUENCE)
+                        else if (depth == ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE)
                         {
-                            if (CheckConstraintConsequence())
+                            if (CheckFeatureConstraintConsequence())
+                            {
+                                AddConstraint();
+                            }
+                        }
+                        else if (depth == ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER)
+                        {
+                            if (CheckModuleConsequencePointer())
                             {
                                 AddConstraint();
                             }
@@ -324,20 +410,43 @@ namespace tree_demo_back
                 } },
                 { "LinkTo", new Rule() {
                     ValidDepth = new List<ParserDepth>() {
-                        ParserDepth.CONSTRAINT_CONDITION },
-                    NextDepth = ParserDepth.CONSTRAINT_CONSEQUENCE,
+                        ParserDepth.CONSTRAINT_CONDITION,
+                        ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_INSTRUCTION },
+                    NextDepth = depth => {
+                        if (depth == ParserDepth.CONSTRAINT_CONDITION) {
+                            return ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE;
+                        }
+                        return ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER;
+                    },
                     PerformAction = () => {
-                        CheckConstraintCondition();
+                        if (depth == ParserDepth.CONSTRAINT_CONDITION)
+                        {
+                            CheckConstraintCondition();
+                            AddFeatureConsequence();
+                        }
+                        else if (depth == ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_INSTRUCTION)
+                        {
+                            CheckModuleConsequenceInstruction();
+                        }
                     }
                 } },
-                {
-                    "Generate",  new Rule() {
+                { "Repeat", new Rule() {
+                    ValidDepth = new List<ParserDepth>() {
+                        ParserDepth.CONSTRAINT_CONDITION },
+                    NextDepth = depth => ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_INSTRUCTION,
+                    PerformAction = () => {
+                        if(CheckConstraintCondition())
+                        {
+                            AddModuleConsequence();
+                        }
+                    }
+                } },
+                { "Generate",  new Rule() {
                         ValidDepth = new List<ParserDepth>() {
                             ParserDepth.OUT,
                         },
-                        NextDepth = ParserDepth.GENERATE_SPECIFYING,
+                        NextDepth = depth => ParserDepth.GENERATE_SPECIFYING,
                         PerformAction = () => {
-
                         }
                     }
                 }
@@ -361,7 +470,7 @@ namespace tree_demo_back
                         else
                         {
                             rules[token].PerformAction();
-                            depth = rules[token].NextDepth;
+                            depth = rules[token].NextDepth(depth);
                         }
                     }
                     else
@@ -404,16 +513,17 @@ namespace tree_demo_back
                                 CheckConstraintConditionOptions();
                             }
                         }
-                        else if (depth == ParserDepth.CONSTRAINT_CONSEQUENCE)
+                        else if (depth == ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE)
                         {
-                            if (modules.Last().Constraints.Last().Сonsequence.СlassificationFeatureName == null)
+                            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence;
+                            if (consequence.СlassificationFeatureName == null)
                             {
-                                modules.Last().Constraints.Last().Сonsequence.СlassificationFeatureName = token;
+                                consequence.СlassificationFeatureName = token;
                                 CheckConstraintConsequenceName();
                             }
                             else
                             {
-                                modules.Last().Constraints.Last().Сonsequence.ValidOptions.Add(token);
+                                consequence.ValidOptions.Add(token);
                                 CheckConstraintConsequeceOptions();
                             }
                         }
@@ -422,6 +532,38 @@ namespace tree_demo_back
                             if (CheckModuleNameExistence(token))
                             {
                                 moduleIndex = modules.FindIndex(module => module.Name == token);
+                            }
+                        }
+                        else if (depth == ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_INSTRUCTION)
+                        {
+                            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintModuleConsequence;
+
+                            if (consequence.FeatureName == null)
+                            {
+                                consequence.FeatureName = token;
+                                CheckModuleConsequenceInstruction();
+                            }
+                            else
+                            {
+                                error($"Module constraint must contain only one value (for now): module {modules.Last().Name}");
+                            }
+                        }
+                        else if (depth == ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER)
+                        {
+                            var consequence = modules.Last().Constraints.Last().Consequence as ConstraintModuleConsequence;
+
+                            if (consequence.ModuleName == null && CheckModuleNameExistence(token))
+                            {
+                                consequence.ModuleName = token;
+                            }
+                            else if (consequence.ModuleAlias == null)
+                            {
+                                consequence.ModuleAlias = token;
+                                CheckModuleConsequencePointer();
+                            }
+                            else
+                            {
+                                error($"Aggregate can have only one alias: module {modules.Last().Name}");
                             }
                         }
                         else
@@ -435,8 +577,6 @@ namespace tree_demo_back
                     }
                 }
             }
-
-
 
             if (resultCode == 0 && depth != ParserDepth.OUT && depth != ParserDepth.GENERATE_SPECIFYING)
             {

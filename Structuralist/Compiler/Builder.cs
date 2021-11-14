@@ -8,6 +8,7 @@ namespace tree_demo_back
         public TreeNodeType Type { get; set; }
         public List<BuilderTreeNode> Children { get; set; }
         public List<ItemsGroup> Content { get; set; }
+        public List<string> ModuleList { get; set; }
 
         public BuilderTreeNode() { }
 
@@ -16,6 +17,7 @@ namespace tree_demo_back
             Type = source.Type;
             Content = source.Content?.Select(c => new ItemsGroup(c)).ToList();
             Children = source.Children?.Select(c => new BuilderTreeNode(c)).ToList();
+            ModuleList = source.ModuleList?.Select(c => c).ToList();
         }
     }
 
@@ -38,10 +40,26 @@ namespace tree_demo_back
                     type = currentNode.Type,
                     children = new List<int>()
                 });
-                if (currentNode.Children.Count == 0 && currentNode.Content != null && currentNode.Content.Count == 1)
+                if (currentNode.Content != null)
                 {
-                    treeList.Last().content = $"{currentNode.Content[0].Name}: {currentNode.Content[0].Items[0]}";
+                    var currentModuleName = "";
+                    foreach (var moduleName in currentNode.ModuleList)
+                    {
+                        currentModuleName += moduleName + ".";
+                    }
+                    var content = "";
+                    foreach (var current in currentNode.Content)
+                    {
+                        content += currentModuleName + current.Name + ": ";
+                        foreach (var item in current.Items)
+                        {
+                            content += item + " ";
+                        }
+                        content += "; ";
+                    }
+                    treeList.Last().content = content;
                 }
+
                 foreach (var child in currentNode.Children)
                 {
                     queue.Enqueue(child);
@@ -52,13 +70,35 @@ namespace tree_demo_back
             return treeList.ToArray();
         }
 
-        private BuilderTreeNode GenerateBasicTree(ModuleM1 module)
+        private bool IsCurrentModule(BuilderTreeNode node, List<string> moduleList)
+        {
+            bool isCurrentModule = true;
+            if (node.ModuleList.Count == moduleList.Count)
+            {
+                for (int moduleNameIndex = 0; moduleNameIndex != moduleList.Count; moduleNameIndex++)
+                {
+                    if (node.ModuleList[moduleNameIndex] != moduleList[moduleNameIndex])
+                    {
+                        isCurrentModule = false;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                isCurrentModule = false;
+            }
+            return isCurrentModule;
+        }
+
+        private BuilderTreeNode GenerateBasicTree(ModuleM1 module, List<string> moduleList = null)
         {
             var tree = new BuilderTreeNode()
             {
                 Type = TreeNodeType.AND,
                 Children = new List<BuilderTreeNode>(),
-                Content = module.ClassificationFeatures
+                Content = module.ClassificationFeatures,
+                ModuleList = (moduleList ?? new List<string>()).Concat(new List<string>() { module.Name }).ToList()
             };
 
             var pointer = tree;
@@ -77,8 +117,10 @@ namespace tree_demo_back
                                 Name = module.ClassificationFeatures[featureIndex].Name,
                                 Items = new List<string>() { item }
                             }
-                        }
-                    }).ToList()
+                        },
+                        ModuleList = tree.ModuleList.Select(c => c).ToList()
+                    }).ToList(),
+                    ModuleList = tree.ModuleList.Select(c => c).ToList()
                 };
                 pointer.Children.Add(choiceNode);
                 if (featureIndex != module.ClassificationFeatures.Count - 1)
@@ -87,7 +129,8 @@ namespace tree_demo_back
                     {
                         Type = TreeNodeType.AND,
                         Children = new List<BuilderTreeNode>(),
-                        Content = module.ClassificationFeatures.Where((group, index) => index > featureIndex).ToList()
+                        Content = module.ClassificationFeatures.Where((group, index) => index > featureIndex).ToList(),
+                        ModuleList = tree.ModuleList.Select(c => c).ToList()
                     };
                     pointer.Children.Add(nextAndNode);
                     pointer = nextAndNode;
@@ -97,15 +140,7 @@ namespace tree_demo_back
             return tree;
         }
 
-        /*private bool ItemsIntersect(ItemsGroup group1, ItemsGroup group2)
-        {
-            var items1 = group1.Items;
-            var items2 = group2.Items;
-
-            return items1.Intersect(items2).Count() > 0;
-        }*/
-
-        private void ApplyConstraint(BuilderTreeNode tree, Constraint constraint)
+        private void ApplyFeatureConstraint(BuilderTreeNode tree, Constraint constraint)
         {
             if (constraint != null)
             {
@@ -115,8 +150,11 @@ namespace tree_demo_back
                         .Сonditions
                         .FindIndex(condition => condition.СlassificationFeatureName == tree.Content[0].Name) != -1;
 
-                    var topNodeFeaturePresentsInConqecuence = constraint
-                        .Сonsequence.СlassificationFeatureName == tree.Content[0].Name;
+                    bool topNodeFeaturePresentsInConqecuence = false;
+
+                    topNodeFeaturePresentsInConqecuence = (constraint
+                       .Consequence as ConstraintFeatureConsequence)
+                       .СlassificationFeatureName == tree.Content[0].Name;
 
                     if (topNodeFeaturePresentsInCondition)
                     {
@@ -128,19 +166,29 @@ namespace tree_demo_back
 
                         var left = new BuilderTreeNode(tree);
 
-                        left.Content[0].Items = left.Content[0].Items.Where(item => constraintOptions.FindIndex(option => option == item) != -1).ToList();
+                        left.Content[0].Items = left.Content[0]
+                            .Items
+                            .Where(item => constraintOptions.FindIndex(option => option == item) != -1)
+                            .ToList();
 
-                        left.Children[0].Children = left.Children[0].Children
-                            .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Items[0]) != -1).ToList();
+                        left.Children[0].Children = left.Children[0]
+                            .Children
+                            .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Items[0]) != -1)
+                            .ToList();
 
                         if (left.Children[0].Children.Count > 0)
                         {
                             var right = new BuilderTreeNode(tree);
 
-                            right.Children[0].Children = right.Children[0].Children
-                                .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Items[0]) == -1).ToList();
+                            right.Children[0].Children = right.Children[0]
+                                .Children
+                                .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Items[0]) == -1)
+                                .ToList();
 
-                            right.Content[0].Items = right.Content[0].Items.Where(item => constraintOptions.FindIndex(option => option == item) == -1).ToList();
+                            right.Content[0].Items = right.Content[0]
+                                .Items
+                                .Where(item => constraintOptions.FindIndex(option => option == item) == -1)
+                                .ToList();
 
                             tree.Content = null;
                             tree.Type = TreeNodeType.OR;
@@ -154,25 +202,115 @@ namespace tree_demo_back
                                 tree.Children.Add(right);
                             }
 
-                            ApplyConstraint(left.Children[1], constraint);
+                            ApplyFeatureConstraint(left.Children[1], constraint);
                         }
                     }
                     else if (tree.Children.Count > 1)
                     {
-                        ApplyConstraint(tree.Children[1], constraint);
+                        ApplyFeatureConstraint(tree.Children[1], constraint);
                     }
                     if (topNodeFeaturePresentsInConqecuence)
                     {
+                        tree.Content[0].Items = tree.Content[0].Items.Where(item =>
+                        (constraint.Consequence as ConstraintFeatureConsequence)
+                            .ValidOptions.FindIndex(option => option == item) != -1).ToList();
+
                         tree.Children[0].Children = tree.Children[0].Children.Where((child) =>
-                            constraint.Сonsequence.ValidOptions.FindIndex(option => child.Content[0].Items[0] == option) != -1
+                            (constraint.Consequence as ConstraintFeatureConsequence)
+                            .ValidOptions.FindIndex(option => child.Content[0].Items[0] == option) != -1
                         ).ToList();
+                    }
+
+                }
+                else
+                {
+                    for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
+                    {
+                        ApplyFeatureConstraint(tree.Children[childIndex], constraint);
+                    }
+                }
+            }
+        }
+
+        private void ApplyModuleConstraint(BuilderTreeNode tree, Constraint constraint, List<ModuleM1> modules)
+        {
+            if (constraint != null)
+            {
+                if (tree.Type == TreeNodeType.AND)
+                {
+                    var topNodeFeaturePresentsInCondition = constraint
+                        .Сonditions
+                        .FindIndex(condition => condition.СlassificationFeatureName == tree.Content[0].Name) != -1;
+
+                    if (topNodeFeaturePresentsInCondition)
+                    {
+                        var constraintOptions = constraint
+                            .Сonditions
+                            .Find(condition => condition.СlassificationFeatureName == tree.Content[0].Name)
+                            .СonditionOptions
+                            .ToList();
+
+                        var left = new BuilderTreeNode(tree);
+
+                        left.Content[0].Items = left.Content[0]
+                            .Items
+                            .Where(item => constraintOptions.FindIndex(option => option == item) != -1)
+                            .ToList();
+
+                        left.Children[0].Children = left.Children[0]
+                            .Children
+                            .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Items[0]) != -1)
+                            .ToList();
+
+                        if (left.Children[0].Children.Count > 0)
+                        {
+                            var right = new BuilderTreeNode(tree);
+
+                            right.Children[0].Children = right.Children[0]
+                                .Children
+                                .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Items[0]) == -1)
+                                .ToList();
+
+                            right.Content[0].Items = right.Content[0]
+                                .Items
+                                .Where(item => constraintOptions.FindIndex(option => option == item) == -1)
+                                .ToList();
+
+                            tree.Content = null;
+                            tree.Type = TreeNodeType.OR;
+                            tree.Children = new List<BuilderTreeNode>()
+                                {
+                                    left
+                                };
+
+                            if (right.Children[0].Children.Count > 0)
+                            {
+                                tree.Children.Add(right);
+                            }
+
+                            if (left.Content[0].Name == constraint.Сonditions.Last().СlassificationFeatureName)
+                            {
+                                var moduleIndex = modules
+                                    .FindIndex(module => module.Name == (constraint.Consequence as ConstraintModuleConsequence).ModuleName);
+                                left.Children.Add(Prebuild(modules, moduleIndex, tree.ModuleList));
+
+                            }
+                            else
+                            {
+                                ApplyModuleConstraint(left.Children[1], constraint, modules);
+                            }
+                        }
+                    }
+                    else if (tree.Children.Count > 1)
+                    {
+                        ApplyModuleConstraint(tree.Children[1], constraint, modules);
                     }
                 }
                 else
                 {
                     for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
                     {
-                        ApplyConstraint(tree.Children[childIndex], constraint);
+                        ApplyModuleConstraint(tree.Children[childIndex], constraint, modules);
                     }
                 }
             }
@@ -235,14 +373,73 @@ namespace tree_demo_back
             }
         }
 
+        private void CombineContent(BuilderTreeNode targetNode, BuilderTreeNode sourceNode)
+        {
+            foreach (var sourceContent in sourceNode.Content)
+            {
+                if (targetNode.Content.FindIndex(content => content.Name == sourceContent.Name) == -1)
+                {
+                    targetNode.Content.Add(new ItemsGroup() { Name = sourceContent.Name, Items = new List<string>() });
+
+                }
+                int contentIndex = targetNode.Content.FindIndex(content => content.Name == sourceContent.Name);
+                foreach (var item in sourceContent.Items)
+                {
+                    if (targetNode.Content[contentIndex].Items.FindIndex(i => i == item) == -1)
+                    {
+                         targetNode.Content[contentIndex].Items.Add(item);
+                    }
+                }
+            }
+        }
+
+        private void PutContentInOrder(BuilderTreeNode node)
+        {
+            if (node.Children.Count != 0)
+            {
+                if (node.Content != null)
+                {
+                    node.Content = new List<ItemsGroup>() { node.Content.First() } ;
+                }
+                else
+                {
+                    node.Content = new List<ItemsGroup>();
+                }
+                
+                foreach (var child in node.Children)
+                {
+                    PutContentInOrder(child);
+                    CombineContent(node, child); 
+                }
+            }
+        }
+
+        public BuilderTreeNode Prebuild(List<ModuleM1> modules, int moduleIndex, List<string> moduleList = null)
+        {
+            var tree = GenerateBasicTree(modules[moduleIndex], moduleList);
+
+            var featureConstraints = modules[moduleIndex].Constraints
+                .Where(constraint => constraint.Consequence is ConstraintFeatureConsequence);
+            var moduleConstraints = modules[moduleIndex].Constraints
+                .Where(constraint => constraint.Consequence is ConstraintModuleConsequence);
+
+            foreach (var constarint in featureConstraints)
+            {
+                ApplyFeatureConstraint(tree, constarint);
+            }
+            foreach (var constarint in moduleConstraints)
+            {
+                ApplyModuleConstraint(tree, constarint, modules);
+            }
+
+            PutContentInOrder(tree);
+
+            return tree;
+        }
+
         public TreeNode[] Build(List<ModuleM1> modules, int moduleIndex)
         {
-            var tree = GenerateBasicTree(modules[moduleIndex]);
-
-            foreach (var constarint in modules[moduleIndex].Constraints)
-            {
-                ApplyConstraint(tree, constarint);
-            }
+            var tree = Prebuild(modules, moduleIndex);
 
             Optimize(tree);
 
