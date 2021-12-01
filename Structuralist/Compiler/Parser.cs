@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,9 +65,9 @@ namespace tree_demo_back
         {
             modules.Last().Constraints.Add(new Constraint()
             {
-                Сonditions = new List<ConstraintCondition>() {
+                Conditions = new List<ConstraintCondition>() {
                                     new ConstraintCondition() {
-                                        СonditionOptions = new List<string>()
+                                        ConditionOptions = new List<string>()
                                     }
                                 }
             });
@@ -76,9 +75,9 @@ namespace tree_demo_back
 
         void AddCondition()
         {
-            modules.Last().Constraints.Last().Сonditions.Add(new ConstraintCondition()
+            modules.Last().Constraints.Last().Conditions.Add(new ConstraintCondition()
             {
-                СonditionOptions = new List<string>()
+                ConditionOptions = new List<string>()
             });
         }
 
@@ -141,7 +140,7 @@ namespace tree_demo_back
 
         void CheckConstraintConditionName()
         {
-            var conditionName = modules.Last().Constraints.Last().Сonditions.Last().СlassificationFeatureName;
+            var conditionName = modules.Last().Constraints.Last().Conditions.Last().ClassificationFeatureName;
 
             var featureNames = modules.Last().ClassificationFeatures.Select(feature => feature.Name).ToList();
 
@@ -154,7 +153,7 @@ namespace tree_demo_back
         void CheckConstraintConsequenceName()
         {
             var consequenceName = (modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence)
-                .СlassificationFeatureName;
+                .FeatureName;
 
             var featureNames = modules.Last().ClassificationFeatures.Select(feature => feature.Name).ToList();
 
@@ -166,14 +165,14 @@ namespace tree_demo_back
 
         void CheckConstraintConditionOptions()
         {
-            var options = modules.Last().Constraints.Last().Сonditions.Last().СonditionOptions;
+            var options = modules.Last().Constraints.Last().Conditions.Last().ConditionOptions;
 
             if (options.Count() != options.Distinct().Count())
             {
                 error($"There are the same options in constarint condition: module '{modules.Last().Name}'.");
             }
 
-            var conditionName = modules.Last().Constraints.Last().Сonditions.Last().СlassificationFeatureName;
+            var conditionName = modules.Last().Constraints.Last().Conditions.Last().ClassificationFeatureName;
 
             var targetItemsGroup = modules.Last().ClassificationFeatures.First(feature => feature.Name == conditionName);
 
@@ -197,7 +196,7 @@ namespace tree_demo_back
                 error($"There are the same options in constarint consequence: module '{modules.Last().Name}'.");
             }
 
-            var consequenceName = consequence.СlassificationFeatureName;
+            var consequenceName = consequence.FeatureName;
 
             var targetItemsGroup = modules.Last().ClassificationFeatures.First(feature => feature.Name == consequenceName);
 
@@ -235,14 +234,14 @@ namespace tree_demo_back
         bool CheckConstraintCondition()
         {
             bool result = true;
-            if (modules.Last().Constraints.Last().Сonditions.Last().СlassificationFeatureName == null)
+            if (modules.Last().Constraints.Last().Conditions.Last().ClassificationFeatureName == null)
             {
                 error($"No condition name. Module: {modules.Last().Name}.");
                 result = false;
             }
-            else if (modules.Last().Constraints.Last().Сonditions.Last().СonditionOptions.Count == 0)
+            else if (modules.Last().Constraints.Last().Conditions.Last().ConditionOptions.Count == 0)
             {
-                error($"Empty condition. Module: {modules.Last().Name}. Condition: {modules.Last().Constraints.Last().Сonditions.Last().СlassificationFeatureName}");
+                error($"Empty condition. Module: {modules.Last().Name}. Condition: {modules.Last().Constraints.Last().Conditions.Last().ClassificationFeatureName}");
                 result = false;
             }
             return result;
@@ -252,14 +251,14 @@ namespace tree_demo_back
         {
             bool result = true;
             var consequence = modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence;
-            if (consequence.СlassificationFeatureName == null)
+            if (consequence.FeatureName == null)
             {
                 error($"No consequence name. Module: {modules.Last().Name}.");
                 result = false;
             }
             else if (consequence.ValidOptions.Count == 0)
             {
-                error($"Empty consequence. Module: {modules.Last().Name}. Consequence: {consequence.СlassificationFeatureName}");
+                error($"Empty consequence. Module: {modules.Last().Name}. Consequence: {consequence.FeatureName}");
                 result = false;
             }
             return result;
@@ -270,14 +269,22 @@ namespace tree_demo_back
             bool result = true;
             var consequence = modules.Last().Constraints.Last().Consequence as ConstraintModuleConsequence;
             var features = modules.Last().ClassificationFeatures;
-            if (consequence.FeatureName == null)
+            if (consequence.ExpressionString.Length == 0)
             {
-                error($"Feature name and feature value must be provider in module constraint: module {modules.Last().Name}");
+                error($"Repeat expression cannot be empty");
                 result = false;
             }
-            else if (!features.Any(feature => feature.Name == consequence.FeatureName))
+
+            var integerFeature = features.Where(feature => feature.Type == ItemsGroupType.INTEGER);
+
+            var integerFeatureNames = integerFeature.Select(feature => feature.Name).ToList();
+
+            consequence.Expression = new MathExpression(consequence.ExpressionString.ToString(), integerFeatureNames);
+            var exporessionError = consequence.Expression.GetError();
+
+            if (exporessionError is not null)
             {
-                error($"Bad feature in module constraint: module {modules.Last().Name} {consequence.FeatureName}");
+                error(exporessionError);
                 result = false;
             }
 
@@ -387,7 +394,7 @@ namespace tree_demo_back
                         }
                         else if (depth == ParserDepth.CONSTRAINT_CONDITION)
                         {
-                            if(CheckConstraintCondition())
+                            if (CheckConstraintCondition())
                             {
                                 AddCondition();
                             }
@@ -502,23 +509,23 @@ namespace tree_demo_back
                         }
                         else if (depth == ParserDepth.CONSTRAINT_CONDITION)
                         {
-                            if (modules.Last().Constraints.Last().Сonditions.Last().СlassificationFeatureName == null)
+                            if (modules.Last().Constraints.Last().Conditions.Last().ClassificationFeatureName == null)
                             {
-                                modules.Last().Constraints.Last().Сonditions.Last().СlassificationFeatureName = token;
+                                modules.Last().Constraints.Last().Conditions.Last().ClassificationFeatureName = token;
                                 CheckConstraintConditionName();
                             }
                             else
                             {
-                                modules.Last().Constraints.Last().Сonditions.Last().СonditionOptions.Add(token);
+                                modules.Last().Constraints.Last().Conditions.Last().ConditionOptions.Add(token);
                                 CheckConstraintConditionOptions();
                             }
                         }
                         else if (depth == ParserDepth.CONSTRAINT_FEATURE_CONSEQUENCE)
                         {
                             var consequence = modules.Last().Constraints.Last().Consequence as ConstraintFeatureConsequence;
-                            if (consequence.СlassificationFeatureName == null)
+                            if (consequence.FeatureName == null)
                             {
-                                consequence.СlassificationFeatureName = token;
+                                consequence.FeatureName = token;
                                 CheckConstraintConsequenceName();
                             }
                             else
@@ -538,15 +545,7 @@ namespace tree_demo_back
                         {
                             var consequence = modules.Last().Constraints.Last().Consequence as ConstraintModuleConsequence;
 
-                            if (consequence.FeatureName == null)
-                            {
-                                consequence.FeatureName = token;
-                                CheckModuleConsequenceInstruction();
-                            }
-                            else
-                            {
-                                error($"Module constraint must contain only one value (for now): module {modules.Last().Name}");
-                            }
+                            consequence.ExpressionString.Append(token);
                         }
                         else if (depth == ParserDepth.CONSTRAINT_MODULE_CONSEQUENCE_POINTER)
                         {

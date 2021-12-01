@@ -1,8 +1,13 @@
 using System.Collections.Generic;
+using System.Text;
 
-public class ConstraintModuleConsequence : ConstraintFeature
+namespace tree_demo_back
 {
-    public string FeatureName { get; set; }
-    public string ModuleName { get; set; }
-    public string ModuleAlias { get; set; }
+    public class ConstraintModuleConsequence : ConstraintFeature
+    {
+        public StringBuilder ExpressionString { get; set; } = new StringBuilder("");
+        public MathExpression Expression { get; set; }
+        public string ModuleName { get; set; }
+        public string ModuleAlias { get; set; }
+    }
 }
