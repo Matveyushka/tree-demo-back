@@ -29,6 +29,8 @@ namespace tree_demo_back
 
         public int GetVariableAmount() => usedVariables.Count;
 
+        public List<string> GetVariables() => usedVariables;
+
         public MathExpression(string source, List<string> allowedVariableNames)
         {
             this.allowedVariableNames = allowedVariableNames;

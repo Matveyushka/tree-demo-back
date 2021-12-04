@@ -29,9 +29,9 @@ namespace tree_demo_back
                     var content = new StringBuilder();
                     foreach (var current in currentNode.Content)
                     {
-                        foreach (var moduleName in currentNode.ModuleList)
+                        foreach (var module in currentNode.ModuleList)
                         {
-                            content.Append(moduleName + ".");
+                            content.Append(module.name + "[" + module.index + "]" + ".");
                         }
                         content.Append(current.Name + ": ");
                         foreach (var item in current.Items)
@@ -73,14 +73,18 @@ namespace tree_demo_back
             }
             return isCurrentModule;
         }*/
-        private BuilderTreeNode GenerateBasicTree(ModuleM1 module, List<string> moduleList = null, int moduleNumber = 0)
+        private BuilderTreeNode GenerateBasicTree(ModuleM1 module, List<ModuleInstanceName> moduleList = null, int moduleNumber = 0)
         {
             var tree = new BuilderTreeNode()
             {
                 Type = TreeNodeType.AND,
                 Children = new List<BuilderTreeNode>(),
                 Content = module.ClassificationFeatures,
-                ModuleList = (moduleList ?? new List<string>()).Concat(new List<string>() { $"{module.Name}[{moduleNumber}]" }).ToList()
+                ModuleList = (moduleList ?? new List<ModuleInstanceName>())
+                    .Concat(new List<ModuleInstanceName>() { new ModuleInstanceName {
+                        name = module.Name,
+                        index = moduleNumber
+                    } }).ToList()
             };
 
             var pointer = tree;
@@ -217,6 +221,44 @@ namespace tree_demo_back
             }
         }
 
+        private bool IsConstraintFullyApplied(
+            string currentItemsGroupName,
+            Constraint constraint,
+            BuilderTreeNode tree,
+            List<ModuleM1> modules)
+        {
+            var currentModule = modules.Find(module => module.Name == tree.ModuleList.Last().name);
+            var consequence = constraint.Consequence as ConstraintModuleConsequence;
+
+            var lastConstraintItemsGroupIndex = 0;
+            for (var i = 0; i != constraint.Conditions.Count; i++)
+            {
+                var optionIndex = currentModule
+                    .ClassificationFeatures
+                    .FindIndex(x => x.Name == constraint.Conditions[i].ClassificationFeatureName);
+                if (optionIndex > lastConstraintItemsGroupIndex)
+                {
+                    lastConstraintItemsGroupIndex = optionIndex;
+                }
+            }
+
+            var expressionVariables = consequence.Expression.GetVariables();
+            for (var i = 0; i != expressionVariables.Count; i++)
+            {
+                var optionIndex = currentModule
+                    .ClassificationFeatures
+                    .FindIndex(x => x.Name == expressionVariables[i]);
+                if (optionIndex > lastConstraintItemsGroupIndex)
+                {
+                    lastConstraintItemsGroupIndex = optionIndex;
+                }
+            }
+
+            var currentItemsGroupIndex = currentModule.ClassificationFeatures.FindIndex(itemsGroup => itemsGroup.Name == currentItemsGroupName);
+
+            return currentItemsGroupIndex >= lastConstraintItemsGroupIndex;
+        }
+
         private void ApplyModuleConstraint(BuilderTreeNode tree, Constraint constraint, List<ModuleM1> modules)
         {
             if (constraint is not null && constraint.Consequence is ConstraintModuleConsequence consequence)
@@ -244,13 +286,30 @@ namespace tree_demo_back
                             DivideTreeByModuleConstraint(tree);
                             for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
                             {
-                                if (tree.Children[childIndex].SavedValues.Count == consequence.Expression.GetVariableAmount())
+                                if (tree.Children[childIndex].SavedValues.Count >= consequence.Expression.GetVariableAmount() &&
+                                    IsConstraintFullyApplied(tree.Content[0].Name, constraint, tree, modules))
                                 {
                                     MarkToGenerateSubModules(tree.Children[childIndex].Children[0], modules, consequence);
                                 }
                                 else if (tree.Children[childIndex].Children.Count > 1)
                                 {
                                     ApplyModuleConstraint(tree.Children[childIndex].Children[1], constraint, modules);
+                                }
+                            }
+                        }
+                        else if (conditionIsFullfilled)
+                        {
+                            tree.Children[0].SavedValues = tree.SavedValues;
+                            if (tree.SavedValues.Count == consequence.Expression.GetVariableAmount() &&
+                                IsConstraintFullyApplied(tree.Content[0].Name, constraint, tree, modules))
+                            {
+                                MarkToGenerateSubModules(tree.Children[0], modules, consequence);
+                            }
+                            else
+                            {
+                                for (var i = 1; i < tree.Children.Count; i++)
+                                {
+                                    ApplyModuleConstraint(tree.Children[i], constraint, modules);
                                 }
                             }
                         }
@@ -262,9 +321,13 @@ namespace tree_demo_back
                         else
                         {
                             DivideTreeByConstraintConditions(tree, constraint);
-                            if (tree.Children[0].Children.Count > 1)
+                            if (tree.Children[0].Children.Count > 1 && tree.Type == TreeNodeType.AND)
                             {
                                 ApplyModuleConstraint(tree.Children[0].Children[1], constraint, modules);
+                            }
+                            else if (tree.Type == TreeNodeType.OR)
+                            {
+                                ApplyModuleConstraint(tree.Children[0], constraint, modules);
                             }
                         }
                     }
@@ -273,19 +336,26 @@ namespace tree_demo_back
                         DivideTreeByModuleConstraint(tree);
                         for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
                         {
-                            if (tree.Children[childIndex].SavedValues.Count == consequence.Expression.GetVariableAmount())
+                            if (tree.Children[childIndex].SavedValues.Count == consequence.Expression.GetVariableAmount() &&
+                                    IsConstraintFullyApplied(tree.Content[0].Name, constraint, tree, modules))
                             {
                                 MarkToGenerateSubModules(tree.Children[childIndex].Children[0], modules, consequence);
                             }
-                            else if (tree.Children[childIndex].Children.Count > 1)
+                            else
                             {
-                                ApplyModuleConstraint(tree.Children[childIndex].Children[1], constraint, modules);
+                                for (var i = 1; i < tree.Children.Count; i++)
+                                {
+                                    ApplyModuleConstraint(tree.Children[i], constraint, modules);
+                                }
                             }
                         }
                     }
-                    else if (tree.Children.Count > 1)
+                    else
                     {
-                        ApplyModuleConstraint(tree.Children[1], constraint, modules);
+                        for (var i = 1; i < tree.Children.Count; i++)
+                        {
+                            ApplyModuleConstraint(tree.Children[i], constraint, modules);
+                        }
                     }
                 }
                 else
@@ -300,22 +370,23 @@ namespace tree_demo_back
 
         void MarkToGenerateSubModules(BuilderTreeNode node, List<ModuleM1> modules, ConstraintModuleConsequence consequence)
         {
-            node.Children[0].Type = TreeNodeType.AND;
-
             var aaa = new Dictionary<string, int>();
             node.SavedValues.ForEach(value => aaa.Add(value.Name, value.Value));
             int amount = Math.Max(0, consequence.Expression.Calculate(aaa).result);
 
             int moduleIndex = modules.FindIndex(module => module.Name == consequence.ModuleName);
 
-            node.Children[0].GenerateInstruction = new ModuleGenerateInstruction(moduleIndex, amount);
+            for (int i = 0; i != node.Children.Count; i++)
+            {
+                node.Children[i].Type = TreeNodeType.AND;
+                node.Children[i].GenerateInstruction.Add(new ModuleGenerateInstruction(moduleIndex, amount));
+            }
         }
 
         void GenerateSubModules(BuilderTreeNode tree, List<ModuleM1> modules)
         {
-            if (tree.GenerateInstruction is not null)
+            if (tree.GenerateInstruction.Count > 0)
             {
-                tree.Type = TreeNodeType.AND;
                 tree.Children.Add(new BuilderTreeNode()
                 {
                     Type = TreeNodeType.OR,
@@ -325,12 +396,16 @@ namespace tree_demo_back
                     } },
                     ModuleList = tree.ModuleList
                 });
-                for (int i = 0; i != tree.GenerateInstruction.Amount; i++)
+                tree.Type = TreeNodeType.AND;
+                tree.GenerateInstruction.ForEach(instruction =>
                 {
-                    tree.Children.Add(
-                        Prebuild(modules, tree.GenerateInstruction.ModuleIndex, tree.ModuleList, i)
-                    );
-                }
+                    for (int i = 0; i != instruction.Amount; i++)
+                    {
+                        tree.Children.Add(
+                            Prebuild(modules, instruction.ModuleIndex, tree.ModuleList, i)
+                        );
+                    }
+                });
             }
             else
             {
@@ -343,14 +418,14 @@ namespace tree_demo_back
 
         private void DivideTreeByModuleConstraint(BuilderTreeNode tree)
         {
-            var subTrees = tree.Content[0].Items.Select(item =>
+            var subTrees = tree.Children[0].Children.Select(optionNode =>
             {
                 var subTree = new BuilderTreeNode(tree);
-                subTree.Content[0].Items = new List<string>() { item };
+                subTree.Content[0].Items = new List<string>() { optionNode.Content[0].Items[0] };
                 subTree.SavedValues.Add(new IntegerItemsGroupValue()
                 {
                     Name = tree.Content[0].Name,
-                    Value = int.Parse(item)
+                    Value = int.Parse(optionNode.Content[0].Items[0])
                 });
                 var leftSub = new BuilderTreeNode()
                 {
@@ -359,7 +434,7 @@ namespace tree_demo_back
                                         new ItemsGroup() {
                                             Name = tree.Content[0].Name,
                                             Type = tree.Content[0].Type,
-                                            Items = new List<string>() { item }
+                                            Items = new List<string>() { optionNode.Content[0].Items[0] }
                                         }
                                     },
 
@@ -370,28 +445,17 @@ namespace tree_demo_back
                 leftSub.SavedValues.Add(new IntegerItemsGroupValue()
                 {
                     Name = tree.Content[0].Name,
-                    Value = int.Parse(item)
+                    Value = int.Parse(optionNode.Content[0].Items[0])
                 });
 
-                leftSub.Children.Add(new BuilderTreeNode()
-                {
-                    Type = TreeNodeType.OR,
-                    Content = new List<ItemsGroup>() {
-                                        new ItemsGroup() {
-                                            Name = tree.Content[0].Name,
-                                            Type = tree.Content[0].Type,
-                                            Items = new List<string>() { item }
-                                        }
-                                    },
-                    ModuleList = tree.ModuleList
-                });
+                leftSub.Children.Add(optionNode);
 
-                if (subTree.Children.Count > 1)
+                for (int i = 1; i < subTree.Children.Count; i++)
                 {
                     subTree.Children[1].SavedValues.Add(new IntegerItemsGroupValue()
                     {
                         Name = tree.Content[0].Name,
-                        Value = int.Parse(item)
+                        Value = int.Parse(optionNode.Content[0].Items[0])
                     });
                 }
                 subTree.Type = TreeNodeType.AND;
@@ -492,7 +556,7 @@ namespace tree_demo_back
             }
         }
 
-        public BuilderTreeNode Prebuild(List<ModuleM1> modules, int moduleIndex, List<string> moduleList = null, int moduleNumber = 0)
+        public BuilderTreeNode Prebuild(List<ModuleM1> modules, int moduleIndex, List<ModuleInstanceName> moduleList = null, int moduleNumber = 0)
         {
             var tree = GenerateBasicTree(modules[moduleIndex], moduleList, moduleNumber);
 
@@ -515,7 +579,7 @@ namespace tree_demo_back
 
             PutContentInOrder(tree);
 
-            //GenerateSubModules(tree, modules);
+            GenerateSubModules(tree, modules);
 
             return tree;
         }
@@ -524,7 +588,7 @@ namespace tree_demo_back
         {
             var tree = Prebuild(modules, moduleIndex);
 
-            //Optimize(tree);
+            Optimize(tree);
 
             return ConvertBuilderTree(tree);
         }
