@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+namespace Structuralist.M1;
+
 public enum ItemsGroupType
 {
     ENUM,

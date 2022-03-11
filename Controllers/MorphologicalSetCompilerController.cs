@@ -1,9 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Structuralist.M1;
 
 namespace tree_demo_back.Controllers
 {
@@ -22,8 +19,14 @@ namespace tree_demo_back.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
+        public IActionResult Get()
+        {
+            return Ok("Hello!");
+        }
+
         [HttpPost]
-        public IActionResult  Post(InputCode inputCode)
+        public IActionResult Post(InputCode inputCode)
         {
             //return BadRequest("Bad req");
             var compiler = new Compiler();
