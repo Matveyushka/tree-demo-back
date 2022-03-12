@@ -73,7 +73,7 @@ public class Builder
         }
         return isCurrentModule;
     }*/
-    private BuilderTreeNode GenerateBasicTree(ModuleM1 module, List<ModuleInstanceName> moduleList = null, int moduleNumber = 0)
+    private BuilderTreeNode GenerateBasicTree(ModuleM1 module, List<ModuleInstanceName>? moduleList = null, int moduleNumber = 0)
     {
         var tree = new BuilderTreeNode()
         {
@@ -556,7 +556,7 @@ public class Builder
         }
     }
 
-    public BuilderTreeNode Prebuild(List<ModuleM1> modules, int moduleIndex, List<ModuleInstanceName> moduleList = null, int moduleNumber = 0)
+    public BuilderTreeNode Prebuild(List<ModuleM1> modules, int moduleIndex, List<ModuleInstanceName>? moduleList = null, int moduleNumber = 0)
     {
         var tree = GenerateBasicTree(modules[moduleIndex], moduleList, moduleNumber);
 

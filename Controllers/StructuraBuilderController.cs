@@ -1,10 +1,17 @@
 using System;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
-using Structuralist.M2;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using Structuralist.M2.Output;
 
 namespace tree_demo_back.Controllers
 {
+    public class StructuraBuilderInput
+    {
+        public string Code { get; set; } = null!;
+        public Structuralist.M1M2.ModuleIdentifier Identifier { get; set; } = null!;
+    }
+
     [ApiController]
     [Route("buildstructura")]
     public class StructuaBuilderController : ControllerBase
@@ -14,47 +21,18 @@ namespace tree_demo_back.Controllers
 
         }
 
-        private void LogTerminals(List<Terminal> terminals)
-        {
-            terminals.ForEach(term =>
-            {
-                if (term is Keyword keyword)
-                {
-                    Console.WriteLine(string.Format("{0,-30}{1,-30}{2, -5}{3, -5}",
-                        "KEYWORD", keyword.Type, term.StringNumber, term.Position));
-                }
-                else if (term is Literal literal)
-                {
-                    Console.WriteLine(string.Format("{0,-15}{1,-15}{2,-30}{3, -5}{4, -5}",
-                        "LITERAL", literal.Type, literal.Value, term.StringNumber, term.Position));
-                }
-                else if (term is Operator oper)
-                {
-                    Console.WriteLine(string.Format("{0,-30}{1,-30}{2, -5}{3, -5}",
-                        "OPERATOR", oper.Type, term.StringNumber, term.Position));
-                }
-                else if (term is Identifier identifier)
-                {
-                    Console.WriteLine(string.Format("{0,-30}{1,-30}{2, -5}{3, -5}",
-                        "IDENTIFIER", identifier.Value, term.StringNumber, term.Position));
-                }
-                else
-                {
-                    Console.WriteLine(string.Format("{0,-60}{1, -5}{2, -5}",
-                        "UNKNOWN", term.StringNumber, term.Position));
-                }
-
-            });
-        }
-
         [HttpPost]
-        public IActionResult Post(InputCode inputCode)
+        public IActionResult Post(StructuraBuilderInput input)
         {
             try
             {
-                var terminals = new LexicalAnalyser().GetTerminals(inputCode.code);
-                LogTerminals(terminals);
-                return Ok(inputCode.code);
+                var m2Compiler = new M2Compiler();
+
+                var model = m2Compiler.Compile(input.Code);
+
+                var output = model!.GenerateStructure(input.Identifier);
+
+                return Ok(output);
             }
             catch (Exception e)
             {

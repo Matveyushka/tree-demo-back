@@ -1,3 +1,4 @@
+namespace tempmath;
 public class Number : Operand
 {
     public int value;

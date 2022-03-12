@@ -1,3 +1,4 @@
+namespace tempmath;
 public class UnaryMinus : UnaryOperator
 {
     public override int Calculate(int operand) => -operand;

@@ -279,7 +279,7 @@ public class Parser
 
         var integerFeatureNames = integerFeature.Select(feature => feature.Name).ToList();
 
-        consequence.Expression = new MathExpression(consequence.ExpressionString.ToString(), integerFeatureNames);
+        consequence.Expression = new tempmath.MathExpression(consequence.ExpressionString.ToString(), integerFeatureNames);
         var exporessionError = consequence.Expression.GetError();
 
         if (exporessionError is not null)

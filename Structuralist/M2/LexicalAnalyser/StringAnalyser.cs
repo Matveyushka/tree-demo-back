@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace Structuralist.M2;
@@ -7,64 +5,72 @@ namespace Structuralist.M2;
 public class StringAnalyser
 {
     private int stringNumber;
-    private List<Terminal> terminals = new List<Terminal>();
-    private StringBuilder currentTerminal = new StringBuilder();
+    private List<Token> tokens = new List<Token>();
+    private StringBuilder currentLexem = new StringBuilder();
 
-    private Terminal DetectTerminal(string terminal, int stringNumber, int position)
+    private Token DetectToken(string lexeme, int stringNumber, int position)
     {
-        if (Keyword.IsKeyword(terminal))
+        if (Keyword.IsKeyword(lexeme))
         {
-            return new Keyword(terminal, stringNumber, position);
+            return new Keyword(lexeme, stringNumber, position);
         }
-        else if (Literal.IsLiteral(terminal))
+        else if (RuleLiteral.Is(lexeme))
         {
-            return new Literal(terminal, stringNumber, position);
+            return new RuleLiteral(lexeme, stringNumber, position);
         }
-        else if (Operator.IsOperator(terminal))
+        else if (NumberLiteral.Is(lexeme))
         {
-            return new Operator(terminal[0], stringNumber, position);
+            return new NumberLiteral(lexeme, stringNumber, position);
         }
-        else if (Identifier.IsIdentifier(terminal))
+        else if (PortIndexLiteral.Is(lexeme))
         {
-            return new Identifier(terminal, stringNumber, position);
+            return new PortIndexLiteral(lexeme, stringNumber, position);
+        }
+        else if (Operator.IsOperator(lexeme))
+        {
+            return new Operator(lexeme[0], stringNumber, position);
+        }
+        else if (Identifier.IsIdentifier(lexeme))
+        {
+            return new Identifier(lexeme, stringNumber, position);
         }
         else
         {
-            throw new Exception($"Unknown terminal {terminal}. String: {stringNumber}, position: {position}");
+            throw new Exception($"Unknown lexem {lexeme}. String: {stringNumber}, position: {position}");
         }
     }
 
-    private void AddTerminal(string terminal, int lastSymbolPosition)
+    private void AddToken(string lexem, int lastSymbolPosition)
     {
-        if (terminal.Length > 0)
+        if (lexem.Length > 0)
         {
-            this.terminals.Add(DetectTerminal(
-                terminal, 
-                this.stringNumber, 
-                lastSymbolPosition - terminal.Length + 2));
+            this.tokens.Add(DetectToken(
+                lexem,
+                this.stringNumber,
+                lastSymbolPosition - lexem.Length + 2));
         }
     }
 
     private void HandleInputSymbol(char symbol, int position)
     {
-        if (Array.IndexOf(Operator.AllOperators, symbol) > -1)
+        if (Operator.IsOperator(symbol))
         {
-            AddTerminal(this.currentTerminal.ToString(), position - 1);
-            AddTerminal(symbol.ToString(), position);
-            this.currentTerminal.Clear();
+            AddToken(this.currentLexem.ToString(), position - 1);
+            AddToken(symbol.ToString(), position);
+            this.currentLexem.Clear();
         }
         else if (Char.IsWhiteSpace(symbol))
         {
-            AddTerminal(this.currentTerminal.ToString(), position - 1);
-            this.currentTerminal.Clear();
+            AddToken(this.currentLexem.ToString(), position - 1);
+            this.currentLexem.Clear();
         }
         else
         {
-            this.currentTerminal.Append(symbol);
+            this.currentLexem.Append(symbol);
         }
     }
 
-    public List<Terminal> GetTerminals(string inputString, int stringNumber)
+    public List<Token> GetTokens(string inputString, int stringNumber)
     {
         this.stringNumber = stringNumber;
 
@@ -72,8 +78,8 @@ public class StringAnalyser
         {
             HandleInputSymbol(inputString[position], position);
         }
-        AddTerminal(this.currentTerminal.ToString(), inputString.Length - 1);
+        AddToken(this.currentLexem.ToString(), inputString.Length - 1);
 
-        return new List<Terminal>(this.terminals);
+        return new List<Token>(this.tokens);
     }
 }

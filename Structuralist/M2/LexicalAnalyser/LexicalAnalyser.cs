@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-
 namespace Structuralist.M2;
 
 public class LexicalAnalyser
@@ -13,9 +8,9 @@ public class LexicalAnalyser
             .Split('\n')
         );
 
-    public List<Terminal> GetTerminals(string input) =>
+    public List<Token> GetTokens(string input) =>
         DivideInputToStrings(input)
         .SelectMany((codeString, stringNumber) => 
-            new StringAnalyser().GetTerminals(codeString, stringNumber + 1)
+            new StringAnalyser().GetTokens(codeString, stringNumber + 1)
         ).ToList();
 }

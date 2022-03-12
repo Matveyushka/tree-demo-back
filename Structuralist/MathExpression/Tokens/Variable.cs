@@ -1,3 +1,4 @@
+namespace tempmath;
 public class Variable : Operand
 {
     public string name;
