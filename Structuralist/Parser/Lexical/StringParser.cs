@@ -25,6 +25,11 @@ public class StringParser
 
     private Token DetectToken(string lexeme, int stringNumber, int position)
     {
+        if (lexicalKit.IsKeyword(lexeme))
+        {
+            return new Keyword(lexeme, stringNumber, position);
+        }
+
         var literalHandler = lexicalKit
             .LiteralHandlers
             .FirstOrDefault(handler => handler.IsLexemeLiteral(lexeme));
@@ -34,10 +39,6 @@ public class StringParser
             return literalHandler.ParseLexeme(lexeme, stringNumber, position);
         }
 
-        if (lexicalKit.IsKeyword(lexeme))
-        {
-            return new Keyword(lexeme, stringNumber, position);
-        }
         if (lexicalKit.IsOperator(lexeme))
         {
             return new Operator(lexeme, stringNumber, position);

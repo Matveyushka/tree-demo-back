@@ -85,7 +85,7 @@ public static class Actions
     public static Func<List<object>, FeatureRuleCase> featureCase = values =>
         new FeatureRuleCase()
         {
-            FeatureValue = ((Identifier)values[1]).Value,
+            FeatureValue = ((EnumLiteral)values[1]).Value,
             ModuleLists = new List<ModuleList>() { (ModuleList)values[0] }
         };
 

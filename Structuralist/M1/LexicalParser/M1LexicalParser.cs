@@ -1,15 +1,13 @@
 using System.Text.RegularExpressions;
 using Structuralist.Parser;
 
-namespace Structuralist.M2;
+namespace Structuralist.M1;
 
-public class M2LexicalParser
+public class M1LexicalParser
 {
     private string[] operators = new string[] {
         "(",
         ")",
-        "[",
-        "]",
         ",",
         "-",
         "+",
@@ -19,16 +17,14 @@ public class M2LexicalParser
     };
 
     private string[] keywords = new string[] {
-        "Structura",
-        "Position",
-        "On",
-        "Place",
+        "Module",
         "Feature",
         "Case",
-        "List",
-        "Link",
-        "Port",
-        "not"
+        "Constraint",
+        "Restrict",
+        "Generate",
+        "modules",
+        "Create"
     };
 
     private Regex identifierRegex = new Regex("^[A-Z][a-zA-Z0-9]*$");
@@ -36,14 +32,12 @@ public class M2LexicalParser
     private List<LiteralHandler> literalHandlers = new List<LiteralHandler>()
     {
         new NumberHandler(),
-        new EnumHandler(),
-        new PortIndexHandler(),
-        new RuleHandler()
+        new EnumHandler()
     };
 
     public LexicalParser Parser { get; }
 
-    public M2LexicalParser()
+    public M1LexicalParser()
     {
         this.Parser = new LexicalParser(
             operators, keywords, identifierRegex, literalHandlers

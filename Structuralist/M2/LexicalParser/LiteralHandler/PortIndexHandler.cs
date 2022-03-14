@@ -1,5 +1,6 @@
-using Structuralist.M2;
 using Structuralist.Parser;
+
+namespace Structuralist.M2;
 
 public class PortIndexHandler : LiteralHandler
 {
