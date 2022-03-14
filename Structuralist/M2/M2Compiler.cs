@@ -4,29 +4,11 @@ public class M2Compiler
 {
     public M2Model? Compile(string input)
     {
-        var lexicalAnalyser = new LexicalAnalyser();
-        var syntaxAnalyser = new SyntaxAnalyser();
+        var tokens = new M2LexicalParser()
+            .Parser
+            .GetTokens(input);
 
-        List<Token> tokens = new List<Token>();
-
-        try
-        {
-            tokens = lexicalAnalyser.GetTokens(input);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-        }
-
-        try
-        {
-            return syntaxAnalyser.GetModel(tokens);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message);
-        }
-
-        return null;
+        return new SyntaxParser()
+            .GetModel(tokens);
     }
 }
