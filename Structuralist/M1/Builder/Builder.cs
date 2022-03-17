@@ -24,7 +24,7 @@ public class Builder
                 type = currentNode.Type,
                 children = new List<int>()
             });
-            if (currentNode.Content != null)
+            if (currentNode.Content.Count != 0)
             {
                 var content = new StringBuilder();
                 foreach (var current in currentNode.Content)
@@ -124,7 +124,7 @@ public class Builder
     private void DivideTreeByConstraintConditions(BuilderTreeNode tree, List<Feature> conditions)
     {
         var constraintOptions = conditions
-            .Find(condition => condition.Name == tree.Content[0].Name)
+            .Find(condition => condition.Name == tree.Content[0].Name)?
             .Values
             .ToList();
 
@@ -132,12 +132,12 @@ public class Builder
 
         left.Content[0].Values = left.Content[0]
             .Values
-            .Where(item => constraintOptions.FindIndex(option => option == item) != -1)
+            .Where(item => constraintOptions?.FindIndex(option => option == item) != -1)
             .ToList();
 
         left.Children[0].Children = left.Children[0]
             .Children
-            .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Values[0]) != -1)
+            .Where(child => constraintOptions?.FindIndex(option => option == child.Content[0].Values[0]) != -1)
             .ToList();
 
         if (left.Children[0].Children.Count > 0)
@@ -146,15 +146,15 @@ public class Builder
 
             right.Children[0].Children = right.Children[0]
                 .Children
-                .Where(child => constraintOptions.FindIndex(option => option == child.Content[0].Values[0]) == -1)
+                .Where(child => constraintOptions?.FindIndex(option => option == child.Content[0].Values[0]) == -1)
                 .ToList();
 
             right.Content[0].Values = right.Content[0]
                 .Values
-                .Where(item => constraintOptions.FindIndex(option => option == item) == -1)
+                .Where(item => constraintOptions?.FindIndex(option => option == item) == -1)
                 .ToList();
 
-            tree.Content = null;
+            tree.Content.Clear();
             tree.Type = TreeNodeType.OR;
             tree.Children = new List<BuilderTreeNode>()
                                 {
@@ -230,28 +230,28 @@ public class Builder
         var lastConstraintItemsGroupIndex = 0;
         for (var i = 0; i != conditions.Count; i++)
         {
-            var optionIndex = currentModule
+            var optionIndex = currentModule?
                 .Features
                 .FindIndex(x => x.Name == conditions[i].Name);
             if (optionIndex > lastConstraintItemsGroupIndex)
             {
-                lastConstraintItemsGroupIndex = optionIndex;
+                lastConstraintItemsGroupIndex = optionIndex ?? throw new NullReferenceException("optionIndex must not be null");
             }
         }
 
         var expressionVariables = command.QuantityExpression.GetVariables();
         for (var i = 0; i != expressionVariables.Count; i++)
         {
-            var optionIndex = currentModule
+            var optionIndex = currentModule?
                 .Features
                 .FindIndex(x => x.Name == expressionVariables[i]);
             if (optionIndex > lastConstraintItemsGroupIndex)
             {
-                lastConstraintItemsGroupIndex = optionIndex;
+                lastConstraintItemsGroupIndex = optionIndex ?? throw new NullReferenceException("optionIndex must not be null");
             }
         }
 
-        var currentItemsGroupIndex = currentModule.Features.FindIndex(itemsGroup => itemsGroup.Name == currentItemsGroupName);
+        var currentItemsGroupIndex = currentModule?.Features.FindIndex(itemsGroup => itemsGroup.Name == currentItemsGroupName);
 
         return currentItemsGroupIndex >= lastConstraintItemsGroupIndex;
     }
@@ -423,11 +423,10 @@ public class Builder
         {
             var subTree = new BuilderTreeNode(tree);
             subTree.Content[0].Values = new List<string>() { optionNode.Content[0].Values[0] };
-            subTree.SavedValues.Add(new IntegerItemsGroupValue()
-            {
-                Name = tree.Content[0].Name,
-                Value = int.Parse(optionNode.Content[0].Values[0])
-            });
+            subTree.SavedValues.Add(new IntegerItemsGroupValue(
+                tree.Content[0].Name,
+                int.Parse(optionNode.Content[0].Values[0])
+            ));
             var leftSub = new BuilderTreeNode()
             {
                 Type = TreeNodeType.OR,
@@ -443,21 +442,21 @@ public class Builder
             };
 
             subTree.Children[0] = leftSub;
-            leftSub.SavedValues.Add(new IntegerItemsGroupValue()
-            {
-                Name = tree.Content[0].Name,
-                Value = int.Parse(optionNode.Content[0].Values[0])
-            });
+            leftSub.SavedValues.Add(new IntegerItemsGroupValue(
+            
+                tree.Content[0].Name,
+                 int.Parse(optionNode.Content[0].Values[0])
+            ));
 
             leftSub.Children.Add(optionNode);
 
             for (int i = 1; i < subTree.Children.Count; i++)
             {
-                subTree.Children[1].SavedValues.Add(new IntegerItemsGroupValue()
-                {
-                    Name = tree.Content[0].Name,
-                    Value = int.Parse(optionNode.Content[0].Values[0])
-                });
+                subTree.Children[1].SavedValues.Add(new IntegerItemsGroupValue
+                (
+                    tree.Content[0].Name,
+                    int.Parse(optionNode.Content[0].Values[0])
+                ));
             }
             subTree.Type = TreeNodeType.AND;
             return subTree;
@@ -486,7 +485,7 @@ public class Builder
             var temp = new BuilderTreeNode(tree.Children[0]);
             tree.Type = temp.Type;
             tree.Children = temp.Children.Select(c => new BuilderTreeNode(c)).ToList();
-            tree.Content = temp.Content?.Select(c => new Feature() { Name = c.Name, Values = new List<string>(c.Values) }).ToList();
+            tree.Content = temp.Content.Select(c => new Feature() { Name = c.Name, Values = new List<string>(c.Values) }).ToList();
         }
         else if (tree.Type == TreeNodeType.AND)
         {
@@ -501,7 +500,7 @@ public class Builder
         }
         else if (tree.Type == TreeNodeType.OR)
         {
-            var orChildren = tree.Children.Where(c => c.Type == TreeNodeType.OR && c.Content == null).ToList();
+            var orChildren = tree.Children.Where(c => c.Type == TreeNodeType.OR && c.Content.Count == 0).ToList();
 
             orChildren
                 .ForEach(child =>

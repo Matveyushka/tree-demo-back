@@ -5,8 +5,10 @@ public class IntegerItemsGroupValue
     public string Name { get; set; }
     public int Value { get; set; }
 
-    public IntegerItemsGroupValue()
+    public IntegerItemsGroupValue(string name, int value)
     {
+        this.Name = name;
+        this.Value = value;
     }
 
     public IntegerItemsGroupValue(IntegerItemsGroupValue source)

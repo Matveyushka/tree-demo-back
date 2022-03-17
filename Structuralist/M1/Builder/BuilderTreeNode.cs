@@ -27,11 +27,15 @@ public class BuilderTreeNode
 
     public BuilderTreeNode(BuilderTreeNode source)
     {
+        if (source is null)
+        {
+            throw new NullReferenceException("Copy constructor argument of BuilderTreeNode must not be null");
+        }
         Type = source.Type;
-        Content = source.Content?.Select(c => new Feature() { Name = c.Name, Values = new List<string>(c.Values) }).ToList();
-        Children = source.Children?.Select(c => new BuilderTreeNode(c)).ToList();
+        Content = source.Content.Select(c => new Feature() { Name = c.Name, Values = new List<string>(c.Values) }).ToList();
+        Children = source.Children.Select(c => new BuilderTreeNode(c)).ToList();
         SavedValues = source.SavedValues.Select(c => new IntegerItemsGroupValue(c)).ToList();
-        ModuleList = source.ModuleList?.Select(c => c).ToList();
-        GenerateInstruction = source.GenerateInstruction?.Select(c => c).ToList();
+        ModuleList = source.ModuleList.Select(c => c).ToList();
+        GenerateInstruction = source.GenerateInstruction.Select(c => c).ToList();
     }
 }

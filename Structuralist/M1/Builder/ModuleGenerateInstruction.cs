@@ -20,5 +20,9 @@ public class ModuleGenerateInstruction
             this.Amount = source.Amount;
             this.Restrictions = new List<Feature>(source.Restrictions);
         }
+        else 
+        {
+            throw new NullReferenceException("Copy constructor argument of ModuleGenerateInstruction must not be null");
+        }
     }
 }
