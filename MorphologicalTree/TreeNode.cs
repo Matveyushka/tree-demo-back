@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 public enum TreeNodeType
 {
     OR = 0,
@@ -10,7 +7,7 @@ public enum TreeNodeType
 public class TreeNode
 {
     public TreeNodeType type { get; set; }
-    public List<int> children { get; set; }
+    public List<int> children { get; set; } = new List<int>();
 
-    public string content { get; set; }
+    public string content { get; set; } = null!;
 }

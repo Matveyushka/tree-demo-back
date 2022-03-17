@@ -3,10 +3,15 @@ using Structuralist.Parser;
 namespace Structuralist.M2;
 public static class Actions
 {
-    public static Func<List<object>, object> selfPort = values =>
+    public static Func<List<object>, object> selfPort = values => 
         new SelfPort()
         {
-            PortIndex = values[0].ToString() ?? ""
+            PortIndex = values[0] switch
+            {
+                NumberLiteral number => number.Value.ToString(), 
+                PortIndexLiteral port => port.Value.ToString(),
+                _ => ""
+            }
         };
 
     public static Func<List<object>, object> childPort = values =>
@@ -14,7 +19,12 @@ public static class Actions
         {
             ModuleName = ((Identifier)values[6]).Value,
             ModuleIndex = ((Structuralist.MathExpression.Expression)values[4]),
-            PortIndex = values[1].ToString() ?? ""
+            PortIndex = values[1] switch
+            {
+                NumberLiteral number => number.Value.ToString(), 
+                PortIndexLiteral port => port.Value.ToString(),
+                _ => ""
+            }
         };
 
     public static Func<List<object>, LinkDescription> linkModules = value =>

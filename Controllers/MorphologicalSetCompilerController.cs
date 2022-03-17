@@ -6,7 +6,7 @@ namespace tree_demo_back.Controllers
 {
     public class InputCode
     {
-        public string code { get; set; }
+        public string code { get; set; } = null!;
     }
 
     [ApiController]

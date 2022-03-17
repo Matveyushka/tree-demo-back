@@ -12,11 +12,12 @@ public class RectangleModule : Module
         int north, 
         int east, 
         int south, 
+        string name,
         Dictionary<string, List<Module>> submodules, 
         List<Link> links,        
         int? x,
         int? y)
-         : base(submodules, links, x, y)
+         : base(name, submodules, links, x, y)
     {
         this.West = west;
         this.North = north;

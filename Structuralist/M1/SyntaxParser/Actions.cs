@@ -16,17 +16,17 @@ public static class Actions
     public static Func<List<object>, string> featureValueFromEnum = values =>
         ((EnumLiteral)values[0]).Value;
 
-    public static Func<List<object>, FeatureConstraint> createFeatureConstraint = values =>
-        new FeatureConstraint()
+    public static Func<List<object>, Feature> createFeatureConstraint = values =>
+        new Feature()
         {
-            FeatureName = ((Identifier)values[1]).Value,
-            ValidValues = new List<string>() { (string)values[0] }
+            Name = ((Identifier)values[1]).Value,
+            Values = new List<string>() { (string)values[0] }
         };
 
-    public static Func<List<object>, FeatureConstraint> fillFeatureConstraint = values =>
+    public static Func<List<object>, Feature> fillFeatureConstraint = values =>
         {
-            var featureConstraint = (FeatureConstraint)values[1];
-            featureConstraint.ValidValues.Add((string)values[0]);
+            var featureConstraint = (Feature)values[1];
+            featureConstraint.Values.Add((string)values[0]);
             return featureConstraint;
         };
 
@@ -58,15 +58,15 @@ public static class Actions
             return commands;
         };
 
-    public static Func<List<object>, List<FeatureConstraint>> featureConstraintList = values =>
-        new List<FeatureConstraint>() {
-            (FeatureConstraint)values[0]
+    public static Func<List<object>, List<Feature>> featureConstraintList = values =>
+        new List<Feature>() {
+            (Feature)values[0]
         };
 
-    public static Func<List<object>, List<FeatureConstraint>> fillFeatureConstraintList = values =>
+    public static Func<List<object>, List<Feature>> fillFeatureConstraintList = values =>
         {
-            var list = (List<FeatureConstraint>)values[2];
-            list.Add((FeatureConstraint)values[0]);
+            var list = (List<Feature>)values[2];
+            list.Add((Feature)values[0]);
             return list;
         };
 
@@ -79,30 +79,30 @@ public static class Actions
     public static Func<List<object>, GenerateRule> conditionedGenerate = values =>
         new GenerateRule()
         {
-            Conditions = (List<FeatureConstraint>)values[1],
+            Conditions = (List<Feature>)values[1],
             Command = (List<GenerateCommand>)values[0]
         };
 
     public static Func<List<object>, GenerateRule> restrictedGenerate = values =>
         new GenerateRule()
         {
-            Restrictions = (List<FeatureConstraint>)values[1],
+            Restrictions = (List<Feature>)values[1],
             Command = (List<GenerateCommand>)values[0]
         };
 
     public static Func<List<object>, GenerateRule> fullGenerate = values =>
         new GenerateRule()
         {
-            Conditions = (List<FeatureConstraint>)values[2],
-            Restrictions = (List<FeatureConstraint>)values[1],
+            Conditions = (List<Feature>)values[2],
+            Restrictions = (List<Feature>)values[1],
             Command = (List<GenerateCommand>)values[0]
         };
 
     public static Func<List<object>, FeatureRule> featureRule = values =>
         new FeatureRule()
         {
-            Conditions = (List<FeatureConstraint>)values[1],
-            Consequences = (List<FeatureConstraint>)values[0]
+            Conditions = (List<Feature>)values[1],
+            Consequences = (List<Feature>)values[0]
         };
 
     public static Func<List<object>, Feature> createFeature = values =>

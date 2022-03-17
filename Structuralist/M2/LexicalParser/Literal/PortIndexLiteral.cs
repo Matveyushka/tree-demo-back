@@ -21,10 +21,14 @@ public class PortIndex
         this.Direction = direction;
     }
 
-    public override string ToString()
+    public override string ToString() => this.Index + this.Direction switch
     {
-        return this.Index.ToString() + "_" + this.Direction;
-    }
+        PortDirection.WEST => "w",
+        PortDirection.NORTH => "n",
+        PortDirection.EAST => "e",
+        PortDirection.SOUTH => "s",
+        _ => throw new Exception("AAAAAAAAAAA")
+    };
 }
 
 public class PortIndexLiteral : Token
@@ -36,7 +40,8 @@ public class PortIndexLiteral : Token
         this.Value = new PortIndex(int.Parse(value.Substring(0, value.Length - 1)), ExtractPortDirection(value));
     }
 
-    private PortDirection ExtractPortDirection(string value) {
+    private PortDirection ExtractPortDirection(string value)
+    {
         var directionCode = value[value.Length - 1].ToString().ToLower();
         return directionCode switch
         {
@@ -48,11 +53,5 @@ public class PortIndexLiteral : Token
         };
     }
 
-   public override string ToString() => Value.Index + Value.Direction switch {
-            PortDirection.WEST => "w",
-            PortDirection.NORTH => "n",
-            PortDirection.EAST => "e",
-            PortDirection.SOUTH => "s",
-            _ => throw new Exception("AAAAAAAAAAA")
-   };
+    public override string ToString() => this.Value.ToString();
 }
