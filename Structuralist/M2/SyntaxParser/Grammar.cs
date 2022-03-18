@@ -32,6 +32,7 @@ public static class M2Grammar
         GrammarRule.FromString("FEATURE = FEATURE FEATURECASE", Actions.addCaseToRule),
 
         GrammarRule.FromString("FEATURECASE = case enumvalue LIST", Actions.featureCase),
+        GrammarRule.FromString("FEATURECASE = case number LIST", Actions.featureCaseNumber),
         GrammarRule.FromString("FEATURECASE = FEATURECASE LIST", Actions.addRuleToFeatureCase),
 
         GrammarRule.FromString("LIST = list identifier LINKRULE", Actions.moduleList),

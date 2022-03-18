@@ -7,6 +7,8 @@ namespace Structuralist.M1;
 
 public class Builder
 {
+    private int limit = 5;
+
     private TreeNode[] ConvertBuilderTree(BuilderTreeNode sourceTree)
     {
         int nextNodeIndex = 1;
@@ -94,10 +96,11 @@ public class Builder
                     Type = TreeNodeType.OR,
                     Children = new List<BuilderTreeNode>(),
                     Content = new List<Feature>() {
-                            new Feature() {
-                                Name = restrictedFeatures[featureIndex].Name,
-                                Values = new List<string>() { item }
-                            }
+                            new Feature(
+                                restrictedFeatures[featureIndex].Name,
+                                new List<string>() { item },
+                                restrictedFeatures[featureIndex].Type
+                                )
                         },
                     ModuleList = tree.ModuleList
                 }).ToList(),
@@ -272,16 +275,13 @@ public class Builder
                 .QuantityExpression
                 .IsVariableUsed(tree.Content[0].Name);
 
-            if (conditions.Count == 0)
-            {
-                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
-            }
-            else if (topNodeFeaturePresentsInCondition)
+            if (topNodeFeaturePresentsInCondition)
             {
                 var condition = conditions
                     .First(condition => condition.Name == tree.Content[0].Name);
 
-                var conditionIsFullfilled = (tree.Content[0].Values.All(conditionOption => condition.Values.Contains(conditionOption)));
+                var conditionIsFullfilled = (tree.Content[0].Values.All(conditionOption => condition.Values.Contains(conditionOption)))
+                    || conditions.Count == 0;
 
                 if (conditionIsFullfilled && topNodeFeaturePresentsInConsequence)
                 {
@@ -384,27 +384,32 @@ public class Builder
         }
     }
 
-    void GenerateSubModules(BuilderTreeNode tree, List<Module> modules)
+    void GenerateSubModules(BuilderTreeNode tree, List<Module> modules, int depth)
     {
+        if (depth >= this.limit)
+        {
+            return;
+        }
+
         if (tree.GenerateInstruction.Count > 0)
         {
             tree.Children.Add(new BuilderTreeNode()
             {
                 Type = TreeNodeType.OR,
-                Content = new List<Feature>() { new Feature() {
-                        Name = tree.Content[0].Name,
-                        Values = new List<string>() { tree.Content[0].Values[0] }
-                    } },
+                Content = new List<Feature>() { new Feature(tree.Content[0]) },
                 ModuleList = tree.ModuleList
             });
             tree.Type = TreeNodeType.AND;
             tree.GenerateInstruction.ForEach(instruction =>
             {
-                for (int i = 0; i != instruction.Amount; i++)
+                if (depth != this.limit - 1)
                 {
-                    tree.Children.Add(
-                        Prebuild(modules, instruction.ModuleIndex, tree.ModuleList, instruction.Restrictions, i)
-                    );
+                    for (int i = 0; i != instruction.Amount; i++)
+                    {
+                        tree.Children.Add(
+                            Prebuild(modules, instruction.ModuleIndex, tree.ModuleList, instruction.Restrictions, i, depth + 1)
+                        );
+                    }
                 }
             });
         }
@@ -412,7 +417,7 @@ public class Builder
         {
             for (var childIndex = 0; childIndex != tree.Children.Count; childIndex++)
             {
-                GenerateSubModules(tree.Children[childIndex], modules);
+                GenerateSubModules(tree.Children[childIndex], modules, depth);
             }
         }
     }
@@ -431,11 +436,7 @@ public class Builder
             {
                 Type = TreeNodeType.OR,
                 Content = new List<Feature>() {
-                                        new Feature() {
-                                            Name = tree.Content[0].Name,
-                                            Type = tree.Content[0].Type,
-                                            Values = new List<string>() { optionNode.Content[0].Values[0] }
-                                        }
+                                        new Feature(tree.Content[0])
                                 },
 
                 ModuleList = tree.ModuleList
@@ -443,7 +444,7 @@ public class Builder
 
             subTree.Children[0] = leftSub;
             leftSub.SavedValues.Add(new IntegerItemsGroupValue(
-            
+
                 tree.Content[0].Name,
                  int.Parse(optionNode.Content[0].Values[0])
             ));
@@ -485,7 +486,7 @@ public class Builder
             var temp = new BuilderTreeNode(tree.Children[0]);
             tree.Type = temp.Type;
             tree.Children = temp.Children.Select(c => new BuilderTreeNode(c)).ToList();
-            tree.Content = temp.Content.Select(c => new Feature() { Name = c.Name, Values = new List<string>(c.Values) }).ToList();
+            tree.Content = temp.Content.Select(c => new Feature(c)).ToList();
         }
         else if (tree.Type == TreeNodeType.AND)
         {
@@ -529,7 +530,7 @@ public class Builder
         {
             if (targetNode.Content.FindIndex(content => content.Name == sourceContent.Name) == -1)
             {
-                targetNode.Content.Add(new Feature() { Name = sourceContent.Name, Values = new List<string>() });
+                targetNode.Content.Add(new Feature(sourceContent));
             }
             int contentIndex = targetNode.Content.FindIndex(content => content.Name == sourceContent.Name);
             foreach (var item in sourceContent.Values)
@@ -561,7 +562,8 @@ public class Builder
         int moduleIndex,
         List<ModuleInstanceName>? moduleList = null,
         List<Feature>? restrictions = null,
-        int moduleNumber = 0)
+        int moduleNumber = 0,
+        int depth = 0)
     {
         var tree = GenerateBasicTree(modules[moduleIndex], moduleList, restrictions, moduleNumber);
 
@@ -585,14 +587,18 @@ public class Builder
 
         PutContentInOrder(tree);
 
-        GenerateSubModules(tree, modules);
+        GenerateSubModules(tree, modules, depth);
 
         return tree;
     }
 
-    public TreeNode[] Build(List<Module> modules, int moduleIndex)
+    public TreeNode[] Build(M1Model model)
     {
-        var tree = Prebuild(modules, moduleIndex);
+        this.limit = model.Create.Limit;
+
+        var buildedModule = model.Modules.First(m => m.Name == model.Create.ModuleName);
+
+        var tree = Prebuild(model.Modules, model.Modules.IndexOf(buildedModule));
 
         Optimize(tree);
 

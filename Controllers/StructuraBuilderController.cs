@@ -24,8 +24,8 @@ namespace tree_demo_back.Controllers
         [HttpPost]
         public IActionResult Post(StructuraBuilderInput input)
         {
-            try
-            {
+            // try
+            // {
                 var m2Compiler = new M2Compiler();
 
                 var model = m2Compiler.Compile(input.Code);
@@ -33,11 +33,11 @@ namespace tree_demo_back.Controllers
                 var output = model!.GenerateStructure(input.Identifier);
 
                 return Ok(output);
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
+            // }
+            // catch (Exception e)
+            // {
+                // return BadRequest(e.Message);
+            // }
         }
     }
 }

@@ -85,13 +85,17 @@ public class M2Model
         foreach (var feature in moduleIdentifier.Features)
         {
             var featureRule = M2Module.FeatureRules.FirstOrDefault(rule => rule.FeatureName == feature.Key);
-            var featureCase = featureRule?.Cases.FirstOrDefault(ruleCase => ruleCase.FeatureValue == feature.Value);
+            var featureCase = featureRule?.Cases.FirstOrDefault(ruleCase => ruleCase.FeatureValue == feature.Value.ToString());
             if (featureCase is not default(FeatureRuleCase))
             {
                 foreach (var moduleList in featureCase.ModuleLists)
                 {
                     foreach (var linkRule in moduleList.LinkRules)
                     {
+                        if (moduleIdentifier.Submodules.Keys.Contains(moduleList.Name) == false)
+                        {
+                            continue;
+                        }
                         for (int i = 0; i != moduleIdentifier.Submodules[moduleList.Name].Count; i++)
                         {
                             bool appropriate = true;

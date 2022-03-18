@@ -50,5 +50,6 @@ public static class M1Grammar
         GrammarRule.FromString("FEATUREVALUE = enumvalue", Actions.featureValueFromEnum),
 
         GrammarRule.FromString("CREATE = create identifier", Actions.createCommand),
+        GrammarRule.FromString("CREATE = create identifier limit number", Actions.createCommandWithLimit),
     });
 }

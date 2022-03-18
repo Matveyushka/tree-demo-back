@@ -3,12 +3,12 @@ using Structuralist.Parser;
 namespace Structuralist.M2;
 public static class Actions
 {
-    public static Func<List<object>, object> selfPort = values => 
+    public static Func<List<object>, object> selfPort = values =>
         new SelfPort()
         {
             PortIndex = values[0] switch
             {
-                NumberLiteral number => number.Value.ToString(), 
+                NumberLiteral number => number.Value.ToString(),
                 PortIndexLiteral port => port.Value.ToString(),
                 _ => ""
             }
@@ -21,7 +21,7 @@ public static class Actions
             ModuleIndex = ((Structuralist.MathExpression.Expression)values[4]),
             PortIndex = values[1] switch
             {
-                NumberLiteral number => number.Value.ToString(), 
+                NumberLiteral number => number.Value.ToString(),
                 PortIndexLiteral port => port.Value.ToString(),
                 _ => ""
             }
@@ -96,6 +96,13 @@ public static class Actions
         new FeatureRuleCase()
         {
             FeatureValue = ((EnumLiteral)values[1]).Value,
+            ModuleLists = new List<ModuleList>() { (ModuleList)values[0] }
+        };
+
+    public static Func<List<object>, FeatureRuleCase> featureCaseNumber = values =>
+        new FeatureRuleCase()
+        {
+            FeatureValue = ((NumberLiteral)values[1]).Value.ToString(),
             ModuleLists = new List<ModuleList>() { (ModuleList)values[0] }
         };
 

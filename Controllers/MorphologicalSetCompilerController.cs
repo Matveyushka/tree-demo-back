@@ -31,17 +31,11 @@ namespace tree_demo_back.Controllers
         {
             try
             {
-                var m1lexic = new M1LexicalParser();
-
-                var tokens = m1lexic.Parser.GetTokens(inputCode.code);
+                var tokens = new M1LexicalParser().Parser.GetTokens(inputCode.code);
 
                 var model = new SyntaxParser().GetModel(tokens);
 
-                var builder = new Builder();
-
-                var buildedModule = model.Modules.First(m => m.Name == model.Create.ModuleName);
-
-                var tree = builder.Build(model.Modules, model.Modules.IndexOf(buildedModule));
+                var tree = new Builder().Build(model);
 
                 return Ok(tree);
             }

@@ -24,7 +24,8 @@ public class M1LexicalParser
         "Restrict",
         "Generate",
         "modules",
-        "Create"
+        "Create",
+        "Limit"
     };
 
     private Regex identifierRegex = new Regex("^[A-Z][a-zA-Z0-9]*$");
