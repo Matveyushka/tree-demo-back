@@ -272,12 +272,7 @@ public class Builder
                 .QuantityExpression
                 .IsVariableUsed(tree.Content[0].Name);
 
-            if (conditions.Count == 0)
-            {
-                DivideTreeByModuleConstraint(tree);
-                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
-            }
-            else if (topNodeFeaturePresentsInCondition)
+            if (topNodeFeaturePresentsInCondition)
             {
                 var condition = conditions
                     .First(condition => condition.Name == tree.Content[0].Name);
@@ -352,6 +347,10 @@ public class Builder
                         }
                     }
                 }
+            }
+            else if (conditions.Count == 0)
+            {
+                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
             }
             else
             {
