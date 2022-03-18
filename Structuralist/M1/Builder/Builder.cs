@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace Structuralist.M1;
@@ -275,13 +272,17 @@ public class Builder
                 .QuantityExpression
                 .IsVariableUsed(tree.Content[0].Name);
 
-            if (topNodeFeaturePresentsInCondition)
+            if (conditions.Count == 0)
+            {
+                DivideTreeByModuleConstraint(tree);
+                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
+            }
+            else if (topNodeFeaturePresentsInCondition)
             {
                 var condition = conditions
                     .First(condition => condition.Name == tree.Content[0].Name);
 
-                var conditionIsFullfilled = (tree.Content[0].Values.All(conditionOption => condition.Values.Contains(conditionOption)))
-                    || conditions.Count == 0;
+                var conditionIsFullfilled = (tree.Content[0].Values.All(conditionOption => condition.Values.Contains(conditionOption)));
 
                 if (conditionIsFullfilled && topNodeFeaturePresentsInConsequence)
                 {

@@ -1,8 +1,5 @@
-using System;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using Structuralist.M2.Output;
+using Structuralist.M2;
 
 namespace tree_demo_back.Controllers
 {
@@ -14,9 +11,9 @@ namespace tree_demo_back.Controllers
 
     [ApiController]
     [Route("buildstructura")]
-    public class StructuaBuilderController : ControllerBase
+    public class StructuraBuilderController : ControllerBase
     {
-        public StructuaBuilderController()
+        public StructuraBuilderController()
         {
 
         }
@@ -26,11 +23,9 @@ namespace tree_demo_back.Controllers
         {
             // try
             // {
-                var m2Compiler = new M2Compiler();
-
-                var model = m2Compiler.Compile(input.Code);
-
-                var output = model!.GenerateStructure(input.Identifier);
+                var output = M2Compiler
+                    .Compile(input.Code)
+                    .GenerateStructure(input.Identifier);
 
                 return Ok(output);
             // }

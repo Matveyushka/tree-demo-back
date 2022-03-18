@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Structuralist.M1;
+using Structuralist.M1M2;
 
 namespace tree_demo_back.Controllers
 {
@@ -29,20 +29,16 @@ namespace tree_demo_back.Controllers
         [HttpPost]
         public IActionResult Post(InputCode inputCode)
         {
-            try
-            {
-                var tokens = new M1LexicalParser().Parser.GetTokens(inputCode.code);
-
-                var model = new SyntaxParser().GetModel(tokens);
-
-                var tree = new Builder().Build(model);
+            /*try
+            {*/
+                var tree = M1Compiler.Compile(inputCode.code);
 
                 return Ok(tree);
-            }
+            /*}
             catch (Exception exception)
             {
                 return BadRequest(exception.Message);
-            }
+            }*/
         }
     }
 }

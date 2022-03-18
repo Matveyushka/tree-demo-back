@@ -1,8 +1,8 @@
-using Structuralist.M2;
+namespace Structuralist.M2;
 
-public class M2Compiler
+public static class M2Compiler
 {
-    public M2Model? Compile(string input)
+    public static M2Model Compile(string input)
     {
         var tokens = new M2LexicalParser()
             .Parser
