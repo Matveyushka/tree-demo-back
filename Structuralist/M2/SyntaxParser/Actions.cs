@@ -49,6 +49,7 @@ public static class Actions
             var str = ((RuleLiteral)values[0]).Value;
             if (str == "First") return index == 0;
             if (str == "Last") return index == amount - 1;
+            if (str == "Any") return true;
             var num = int.Parse(str.Substring(1, str.Length - 1));
             return index % num == 0;
         };
@@ -62,6 +63,7 @@ public static class Actions
             var str = ((RuleLiteral)values[0]).Value;
             if (str == "First") return index != 0;
             if (str == "Last") return index != amount - 1;
+            if (str == "Any") return true;
             var num = int.Parse(str.Substring(1, str.Length - 1));
             return index % num != 0;
         };
