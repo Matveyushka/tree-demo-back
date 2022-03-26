@@ -24,11 +24,11 @@ public static class Actions
         ((EnumLiteral)values[0]).Value;
 
     public static Func<List<object>, Feature> createFeatureConstraint = values =>
-        new Feature(
-            ((Identifier)values[1]).Value,
-            new List<string>() { (string)values[0] },
-            FeatureType.ENUM
-        );
+        new Feature() {
+            Name = ((Identifier)values[1]).Value,
+            Values = new List<string>() { (string)values[0] },
+            Type = FeatureType.ENUM
+        };
 
     public static Func<List<object>, Feature> fillFeatureConstraint = values =>
         {
@@ -113,13 +113,13 @@ public static class Actions
         };
 
     public static Func<List<object>, Feature> createFeature = values =>
-        new Feature(
-            ((Identifier)values[1]).Value,
-            new List<string>() { (string)values[0] },
-            int.TryParse((string)values[0], out var _) 
+        new Feature() {
+            Name = ((Identifier)values[1]).Value,
+            Values = new List<string>() { (string)values[0] },
+            Type = int.TryParse((string)values[0], out var _) 
                 ? FeatureType.INTEGER
                 : FeatureType.ENUM
-                );
+        };
 
 
     public static Func<List<object>, Feature> fillFeature = values =>

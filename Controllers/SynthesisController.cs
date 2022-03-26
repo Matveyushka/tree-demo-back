@@ -26,7 +26,7 @@ namespace tree_demo_back.Controllers
         [HttpPost]
         public IActionResult Post(SynthesisInput input)
         {
-            var tree = M1Compiler.Compile(input.M1Code);
+            /*var tree = M1Compiler.Compile(input.M1Code);
 
             var m2model = M2Compiler.Compile(input.M2Code);
 
@@ -51,12 +51,12 @@ namespace tree_demo_back.Controllers
             {
                 geneticSolver.nextGeneration();
                 logger.LogInformation(geneticSolver.getBestEvaluation().ToString());
-            }
+            }*/
 
             return Ok();
         }
 
-        private double EstimateModule(Structuralist.M2.Output.Module module)
+        /*private double EstimateModule(Structuralist.M2.Output.Module module)
         {
             double estimation = 0;
             foreach (var submodules in module.Submodules)
@@ -70,6 +70,6 @@ namespace tree_demo_back.Controllers
         }
 
         private Func<Dictionary<int, int>, double> GetEstimator(TreeNode[] tree, M2Model m2model) => id =>
-            EstimateModule(m2model.GenerateStructure(ModuleIdentifier.ExtractFrom(tree, id)!));
+            EstimateModule(m2model.GenerateStructure(ModuleIdentifier.ExtractFrom(tree, id)!));*/
     }
 }

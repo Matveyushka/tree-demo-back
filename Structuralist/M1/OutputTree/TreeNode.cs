@@ -8,19 +8,18 @@ public enum TreeNodeType
 
 public class TreeNode
 {
-    public TreeNodeType type { get; set; }
-    public List<int> children { get; set; } = new List<int>();
-    public string content { get; set; } = null!;
-    public string moduleList { get; set; } = null!;
+    public TreeNodeType Type { get; set; }
+    public List<int> Children { get; set; } = new List<int>();
+    public List<TreeNodeValue> Content { get; set; } = new List<TreeNodeValue>();
 }
 
 public static class TreeNodeExtensions
 {
-    private static bool NodeNeedsGene(TreeNode node) => node.type == TreeNodeType.OR && node.children.Count > 0;
+    private static bool NodeNeedsGene(TreeNode node) => node.Type == TreeNodeType.OR && node.Children.Count > 0;
 
     private static (int index, int size) GetGeneFromNode(int index, TreeNode node) => (
         index,
-        node.children.Count
+        node.Children.Count
     );
 
     public static Dictionary<int, int> GetGenotypeStructure(this TreeNode[] tree)

@@ -1,28 +1,15 @@
 namespace Structuralist.M1;
 
-public struct ModuleInstanceName
-{
-    public string Name { get; set; }
-    public int Index { get; set; }
-}
-
 public class BuilderTreeNode
 {
     public TreeNodeType Type { get; set; }
-    public List<BuilderTreeNode> Children { get; set; }
-    public List<Feature> Content { get; set; }
-    public Dictionary<string, int> SavedValues { get; set; }
-    public List<ModuleInstanceName> ModuleList { get; set; }
-
-    public List<ModuleGenerateInstruction> GenerateInstruction { get; set; }
+    public List<BuilderTreeNode> Children { get; set; } = new List<BuilderTreeNode>();
+    public Dictionary<string, int> SavedValues { get; set; } = new Dictionary<string, int>();
+    public List<TreeNodeValue> Content { get; set; } = new List<TreeNodeValue>();
+    public List<ModuleGenerateInstruction> GenerateInstructions { get; set; } = new List<ModuleGenerateInstruction>();
 
     public BuilderTreeNode()
     {
-        Children = new List<BuilderTreeNode>();
-        Content = new List<Feature>();
-        SavedValues = new Dictionary<string, int>();
-        ModuleList = new List<ModuleInstanceName>();
-        GenerateInstruction = new List<ModuleGenerateInstruction>();
     }
 
     public BuilderTreeNode(BuilderTreeNode source)
@@ -32,12 +19,19 @@ public class BuilderTreeNode
             throw new NullReferenceException("Copy constructor argument of BuilderTreeNode must not be null");
         }
         Type = source.Type;
-        Content = source.Content.Select(c => new Feature(c)).ToList();
-        Children = source.Children.Select(c => new BuilderTreeNode(c)).ToList();
-        SavedValues = new Dictionary<string, int>(source.SavedValues);
-        ModuleList = source.ModuleList.Select(c => c).ToList();
-        GenerateInstruction = source.GenerateInstruction.Select(c => c).ToList();
+        Content = source.Content.Select(nodeValue => new TreeNodeValue(nodeValue)).ToList();
+        Children = source.Children.Select(child => new BuilderTreeNode(child)).ToList();
+        SavedValues = new Dictionary<string, int>();
+        foreach (var sourceSavedValuesEntry in source.SavedValues)
+        {
+            SavedValues.Add(sourceSavedValuesEntry.Key, sourceSavedValuesEntry.Value);
+        }
+        GenerateInstructions = source.GenerateInstructions.Select(instruction => new ModuleGenerateInstruction(instruction)).ToList();
     }
 
     public bool IsLeaf => this.Children.Count == 0;
+
+    public Feature TopContent => this.Content[0].Value!;
+        
+    public ModuleInstanceName CurrentModule => this.Content[0].ModuleList.Last();
 }

@@ -12,12 +12,7 @@ public class Feature
     public List<string> Values { get; set; } = new List<string>();
     public FeatureType Type { get; set; }
 
-    public Feature(string name, List<string> values, FeatureType type)
-    {
-        this.Name = name;
-        this.Values = values;
-        this.Type = type;
-    }
+    public Feature() { }
 
     public Feature(Feature feature)
     {
