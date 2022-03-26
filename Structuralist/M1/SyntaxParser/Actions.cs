@@ -176,7 +176,7 @@ public static class Actions
         new M1Model()
         {
             Modules = (List<Module>)values[1],
-            Create = (CreateCommand)values[0]
+            CreateCommand = (CreateCommand)values[0]
         };
 
     public static Func<List<object>, M1Model> finish = values =>

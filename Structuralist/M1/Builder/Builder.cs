@@ -6,130 +6,32 @@ public class Builder
 {
     private int limit = 5;
 
-    private TreeNode[] ConvertBuilderTree(BuilderTreeNode sourceTree)
+    private void ApplyValidOptions(
+        BuilderTreeNode tree,
+        List<string> constraintOptions,
+        bool included)
     {
-        int nextNodeIndex = 1;
-        var treeList = new List<TreeNode>();
-
-        var queue = new Queue<BuilderTreeNode>();
-
-        queue.Enqueue(sourceTree);
-
-        while (queue.Count != 0)
-        {
-            var currentNode = queue.Dequeue();
-            var newNode = new TreeNode()
-            {
-                Type = currentNode.Type
-            };
-
-            newNode.Content = currentNode.Content;
-
-            foreach (var child in currentNode.Children)
-            {
-                queue.Enqueue(child);
-                newNode.Children.Add(nextNodeIndex++);
-            }
-
-            treeList.Add(newNode);
-        }
-
-        return treeList.ToArray();
-    }
-
-    private BuilderTreeNode GenerateBasicTree(
-        Module module,
-        List<ModuleInstanceName>? moduleList = null,
-        List<Feature>? restrictions = null,
-        int moduleNumber = 0,
-        string? alias = null)
-    {
-        if (moduleList is null)
-        {
-            moduleList = new List<ModuleInstanceName>();
-        }
-
-        restrictions = restrictions ?? new List<Feature>();
-
-        var restrictedNames = restrictions
-            .Select(feature => feature.Name);
-
-        var restrictedFeatures = module
-            .Features
-            .Select(feature => restrictedNames.Contains(feature.Name)
-                ? restrictions.First(f => f.Name == feature.Name)
-                : feature)
+        tree.Children[0].Children = tree.Children[0]
+            .Children
+            .Where(child => (constraintOptions.FindIndex(option => option == child.TopContent.Values[0]) != -1) == included)
             .ToList();
 
-        var currentModuleInstanceName = new ModuleInstanceName
-        {
-            Name = alias ?? module.Name,
-            Index = moduleNumber
-        };
+        tree.TopContent.Values = tree.TopContent
+            .Values
+            .Where(item => (constraintOptions.FindIndex(option => option == item) != -1) == included)
+            .ToList();
+    }
 
-        var currentModuleList = moduleList.Select(l => l).Concat(new List<ModuleInstanceName>() { currentModuleInstanceName }).ToList();
+    private BuilderTreeNode BuildSubtreeByConstraint(
+        BuilderTreeNode tree,
+        List<string> constraintOptions,
+        bool included)
+    {
+        var subtree = new BuilderTreeNode(tree);
 
-        var tree = new BuilderTreeNode()
-        {
-            Type = TreeNodeType.AND,
-            Children = new List<BuilderTreeNode>(),
-            Content = restrictedFeatures.Select(feautre => new TreeNodeValue()
-            {
-                ModuleList = currentModuleList,
-                Value = new Feature(feautre)
-            }).ToList()
-        };
+        ApplyValidOptions(subtree, constraintOptions, included);
 
-        tree.Content.Add(new TreeNodeValue()
-        {
-            ModuleList = currentModuleList,
-            Value = null
-        });
-
-        var pointer = tree;
-
-        for (int featureIndex = 0; featureIndex != restrictedFeatures.Count; featureIndex++)
-        {
-            var choiceNode = new BuilderTreeNode()
-            {
-                Type = TreeNodeType.OR,
-                Children = restrictedFeatures[featureIndex].Values.Select(item => new BuilderTreeNode()
-                {
-                    Type = TreeNodeType.OR,
-                    Children = new List<BuilderTreeNode>(),
-                    Content = new List<TreeNodeValue>()
-                    {
-                        new TreeNodeValue() {
-                            ModuleList = currentModuleList,
-                            Value = new Feature() {
-                                Name = restrictedFeatures[featureIndex].Name,
-                                Values = new List<string>() { item },
-                                Type = restrictedFeatures[featureIndex].Type
-                            }
-                        }
-                    }
-                }).ToList(),
-            };
-            pointer.Children.Add(choiceNode);
-            if (featureIndex != restrictedFeatures.Count - 1)
-            {
-                var nextAndNode = new BuilderTreeNode()
-                {
-                    Type = TreeNodeType.AND,
-                    Children = new List<BuilderTreeNode>(),
-                    Content = restrictedFeatures.Where((group, index) => index > featureIndex)
-                        .Select(feature => new TreeNodeValue()
-                        {
-                            ModuleList = currentModuleList,
-                            Value = new Feature(feature)
-                        }).ToList()
-                };
-                pointer.Children.Add(nextAndNode);
-                pointer = nextAndNode;
-            }
-        }
-
-        return tree;
+        return subtree;
     }
 
     private void DivideTreeByConstraintConditions(BuilderTreeNode tree, List<Feature> conditions)
@@ -137,40 +39,18 @@ public class Builder
         var constraintOptions = conditions
             .Find(condition => condition.Name == tree.TopContent.Name)?
             .Values
-            .ToList();
+            .ToList()
+            ?? new List<string>();
 
-        var left = new BuilderTreeNode(tree);
-
-        left.TopContent.Values = left.TopContent
-            .Values
-            .Where(item => constraintOptions?.FindIndex(option => option == item) != -1)
-            .ToList();
-
-        left.Children[0].Children = left.Children[0]
-            .Children
-            .Where(child => constraintOptions?.FindIndex(option => option == child.TopContent.Values[0]) != -1)
-            .ToList();
+        var left = BuildSubtreeByConstraint(tree, constraintOptions, true);
 
         if (left.Children[0].Children.Count > 0)
         {
-            var right = new BuilderTreeNode(tree);
-
-            right.Children[0].Children = right.Children[0]
-                .Children
-                .Where(child => constraintOptions?.FindIndex(option => option == child.TopContent.Values[0]) == -1)
-                .ToList();
-
-            right.TopContent.Values = right.TopContent
-                .Values
-                .Where(item => constraintOptions?.FindIndex(option => option == item) == -1)
-                .ToList();
+            var right = BuildSubtreeByConstraint(tree, constraintOptions, false);
 
             tree.Content.Clear();
             tree.Type = TreeNodeType.OR;
-            tree.Children = new List<BuilderTreeNode>()
-                                {
-                                    left
-                                };
+            tree.Children = new List<BuilderTreeNode>() { left };
 
             if (right.Children[0].Children.Count > 0)
             {
@@ -181,56 +61,63 @@ public class Builder
 
     private void ApplyFeature(BuilderTreeNode tree, FeatureRule rule)
     {
-        foreach (var consequence in rule.Consequences)
+        if (tree.Type == TreeNodeType.AND)
         {
-            if (rule is not null)
+            if (rule.HasTopTreeFeatureInConditions(tree))
             {
-                if (tree.Type == TreeNodeType.AND)
+                DivideTreeByConstraintConditions(tree, rule.Conditions);
+                if (tree.Children[0].Children.Count > 1)
                 {
-                    var topNodeFeaturePresentsInCondition = rule
-                        .Conditions
-                        .FindIndex(condition => condition.Name == tree.TopContent.Name) != -1;
-
-                    var topNodeFeaturePresentsInConqecuence = consequence
-                        .Name == tree.TopContent.Name;
-
-                    if (topNodeFeaturePresentsInCondition)
-                    {
-                        DivideTreeByConstraintConditions(tree, rule.Conditions);
-                        if (tree.Children[0].Children.Count > 1)
-                        {
-                            ApplyFeature(tree.Children[0].Children[1], rule);
-                        }
-                    }
-                    else if (tree.Children.Count > 1)
-                    {
-                        ApplyFeature(tree.Children[1], rule);
-                    }
-                    if (topNodeFeaturePresentsInConqecuence)
-                    {
-                        tree.TopContent.Values = tree.TopContent.Values.Where(item =>
-                            consequence
-                            .Values.FindIndex(option => option == item) != -1).ToList();
-
-                        tree.Children[0].Children = tree.Children[0].Children.Where((child) =>
-                            consequence
-                            .Values.FindIndex(option => child.TopContent.Values[0] == option) != -1
-                        ).ToList();
-                    }
+                    ApplyFeature(tree.Children[0].Children[1], rule);
                 }
-                else
+            }
+            else
+            {
+                if (rule.HasTopTreeFeatureInConsequence(tree))
                 {
-                    for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
-                    {
-                        ApplyFeature(tree.Children[childIndex], rule);
-                    }
+                    var suitableConsequence = rule
+                        .Consequences
+                        .First(consequence => consequence.Name == tree.TopContent.Name);
+
+                    ApplyValidOptions(tree, suitableConsequence.Values, true);
                 }
+                if (tree.Children.Count > 1)
+                {
+                    ApplyFeature(tree.Children[1], rule);
+                }
+            }
+        }
+        else
+        {
+            for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
+            {
+                ApplyFeature(tree.Children[childIndex], rule);
             }
         }
     }
 
-    private bool IsConstraintFullyApplied(
-        string currentItemsGroupName,
+    private int GetDeepestFeatureIndex(
+        Module currentModule,
+        List<string> expressionVariables)
+    {
+        int deepestConstraintFeatureIndex = 0;
+
+        for (var i = 0; i != expressionVariables.Count; i++)
+        {
+            var featureIndex = currentModule
+                .Features
+                .FindIndex(x => x.Name == expressionVariables[i]);
+            if (featureIndex > deepestConstraintFeatureIndex)
+            {
+                deepestConstraintFeatureIndex = featureIndex;
+            }
+        }
+
+        return deepestConstraintFeatureIndex;
+    }
+
+    private bool IsTreeDepthCoveringModuleConstraint(
+        string currentFeatureName,
         List<Feature> conditions,
         GenerateCommand command,
         BuilderTreeNode tree,
@@ -238,33 +125,19 @@ public class Builder
     {
         var currentModule = modules.Find(module => module.Name == tree.CurrentModule.Name);
 
-        var lastConstraintItemsGroupIndex = 0;
-        for (var i = 0; i != conditions.Count; i++)
+        if (currentModule is null)
         {
-            var optionIndex = currentModule?
-                .Features
-                .FindIndex(x => x.Name == conditions[i].Name);
-            if (optionIndex > lastConstraintItemsGroupIndex)
-            {
-                lastConstraintItemsGroupIndex = optionIndex ?? throw new NullReferenceException("optionIndex must not be null");
-            }
+            throw new Exception($"Cannot find module named {tree.CurrentModule.Name}");
         }
+
+        var currentFeatureIndex = currentModule.Features.FindIndex(Feature => Feature.Name == currentFeatureName);
+        
+        var conditionFeatures = conditions.Select(condition => condition.Name).ToList();
 
         var expressionVariables = command.QuantityExpression.GetVariables();
-        for (var i = 0; i != expressionVariables.Count; i++)
-        {
-            var optionIndex = currentModule?
-                .Features
-                .FindIndex(x => x.Name == expressionVariables[i]);
-            if (optionIndex > lastConstraintItemsGroupIndex)
-            {
-                lastConstraintItemsGroupIndex = optionIndex ?? throw new NullReferenceException("optionIndex must not be null");
-            }
-        }
 
-        var currentItemsGroupIndex = currentModule?.Features.FindIndex(itemsGroup => itemsGroup.Name == currentItemsGroupName);
-
-        return currentItemsGroupIndex >= lastConstraintItemsGroupIndex;
+        return currentFeatureIndex >= GetDeepestFeatureIndex(currentModule, conditionFeatures)
+            && currentFeatureIndex >= GetDeepestFeatureIndex(currentModule, expressionVariables);
     }
 
     private void ApplyModuleConstraint(
@@ -298,7 +171,7 @@ public class Builder
                     for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
                     {
                         if (tree.Children[childIndex].SavedValues.Count >= command.QuantityExpression.GetVariablesQuantity() &&
-                            IsConstraintFullyApplied(tree.TopContent.Name, conditions, command, tree, modules))
+                            IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
                         {
                             MarkToGenerateSubModules(tree.Children[childIndex].Children[0], modules, restrictions, command);
                         }
@@ -312,7 +185,7 @@ public class Builder
                 {
                     tree.Children[0].SavedValues = tree.SavedValues;
                     if (tree.SavedValues.Count == command.QuantityExpression.GetVariablesQuantity() &&
-                        IsConstraintFullyApplied(tree.TopContent.Name, conditions, command, tree, modules))
+                        IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
                     {
                         MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
                     }
@@ -348,7 +221,7 @@ public class Builder
                 for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
                 {
                     if (tree.Children[childIndex].SavedValues.Count == command.QuantityExpression.GetVariablesQuantity() &&
-                            IsConstraintFullyApplied(tree.TopContent.Name, conditions, command, tree, modules))
+                            IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
                     {
                         MarkToGenerateSubModules(tree.Children[childIndex].Children[0], modules, restrictions, command);
                     }
@@ -647,7 +520,14 @@ public class Builder
         string? alias = null,
         int depth = 0)
     {
-        var tree = GenerateBasicTree(modules[moduleIndex], moduleList, restrictions, moduleNumber, alias);
+        var basicTreeCreator = new BasicTreeCreator(
+            modules[moduleIndex],
+            moduleList,
+            restrictions,
+            moduleNumber,
+            alias);
+
+        var tree = basicTreeCreator.CreateBasicTree();
 
         var featureRules = modules[moduleIndex].FeatureRules;
         var moduleRules = modules[moduleIndex].GenerateRules;
@@ -676,16 +556,20 @@ public class Builder
 
     public TreeNode[] Build(M1Model model)
     {
-        this.limit = model.Create.Limit;
+        this.limit = model
+            .CreateCommand
+            .Limit;
 
-        var buildedModule = model.Modules.First(m => m.Name == model.Create.ModuleName);
+        var moduleBeingBuilded = model
+            .Modules
+            .First(m => m.Name == model.CreateCommand.ModuleName);
 
-        var tree = Prebuild(model.Modules, model.Modules.IndexOf(buildedModule));
+        var tree = Prebuild(model.Modules, model.Modules.IndexOf(moduleBeingBuilded));
 
         Optimize(tree);
 
-        var result = ConvertBuilderTree(tree);
+        var resultTree = tree.ToOutputTree();
 
-        return result;
+        return resultTree;
     }
 }
