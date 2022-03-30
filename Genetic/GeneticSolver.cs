@@ -32,17 +32,38 @@ class GeneticSolver<Chromosome>
 
     public void nextGeneration()
     {
+        Console.WriteLine("*************");
+        var time = new TimeEstimator();
+        /////////
+        time.Begin();
         var sortedPopulation = getOrderedPopulation();
+        time.End();
+        time.Begin();
         var selection = new int[this.PopulationSize - this.Elite]
-            .Select(_ => this.Selector.Select(sortedPopulation));
+            .Select(_ => this.Selector.Select(sortedPopulation))
+            .ToList();
+        time.End();
+        /////////////////
+        time.Begin();
         var children = selection
-            .Select(selectedGroup => this.Crossover.Cross(selectedGroup));
+            .Select(selectedGroup => this.Crossover.Cross(selectedGroup))
+            .ToList();
+        time.End();
+        /////////////
+        time.Begin();
         var mutatedChildren = children
-            .Select(child => this.Mutagen.Mutate(child));
+            .Select(child => this.Mutagen.Mutate(child))
+            .ToList();
+        time.End();
+        time.Begin();
         var elite = sortedPopulation
             .Take(this.Elite)
-            .Select(evaluatedIndividual => evaluatedIndividual.Chromo);
+            .Select(evaluatedIndividual => evaluatedIndividual.Chromo)
+            .ToList();
+        time.End();
+        time.Begin();
         this.Population = mutatedChildren.Concat(elite).ToList();
+        time.End();
     }
 
     public double getBestEvaluation()

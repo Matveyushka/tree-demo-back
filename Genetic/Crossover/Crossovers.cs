@@ -1,18 +1,19 @@
 namespace Genetic;
 public static class Crossovers
 {
+    static readonly ThreadLocal<Random> random =
+        new ThreadLocal<Random>(() => new Random(Environment.TickCount * Thread.CurrentThread.ManagedThreadId));
+
     public static Crossover<Dictionary<int, int>> randomCrossover = new Crossover<Dictionary<int, int>>()
     {
         Name = "Random crossover",
         Cross = (List<Dictionary<int, int>> parents) =>
         {
-            Random rnd = new Random((int)(DateTime.Now - new DateTime(1970, 1, 1)).TotalMilliseconds % 10000 + Thread.CurrentThread.ManagedThreadId);
-
             var orNodeIndices = parents[0].Keys;
             var chromosome = new Dictionary<int, int>();
             foreach (var orNodeIndex in orNodeIndices)
             {
-                chromosome[orNodeIndex] = parents[rnd.Next(parents.Count)][orNodeIndex];
+                chromosome[orNodeIndex] = parents[random.Value!.Next(parents.Count)][orNodeIndex];
             }
             return chromosome;
         }

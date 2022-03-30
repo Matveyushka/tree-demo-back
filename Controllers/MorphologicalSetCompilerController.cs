@@ -29,16 +29,14 @@ namespace tree_demo_back.Controllers
         [HttpPost]
         public IActionResult Post(InputCode inputCode)
         {
-            /*try
-            {*/
-                var tree = M1Compiler.Compile(inputCode.code);
-
-                return Ok(tree);
-            /*}
+            try
+            {
+                return Ok(M1Compiler.Compile(inputCode.code));
+            }
             catch (Exception exception)
             {
                 return BadRequest(exception.Message);
-            }*/
+            }
         }
     }
 }

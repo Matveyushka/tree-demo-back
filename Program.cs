@@ -21,6 +21,12 @@ namespace tree_demo_back
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                })
+                .ConfigureLogging((context, logging) =>
+                {
+                    logging.ClearProviders();
+
+                    logging.AddConsole();
                 });
     }
 }

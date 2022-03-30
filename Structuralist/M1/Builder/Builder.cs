@@ -131,7 +131,7 @@ public class Builder
         }
 
         var currentFeatureIndex = currentModule.Features.FindIndex(Feature => Feature.Name == currentFeatureName);
-        
+
         var conditionFeatures = conditions.Select(condition => condition.Name).ToList();
 
         var expressionVariables = command.QuantityExpression.GetVariables();
@@ -149,100 +149,57 @@ public class Builder
     {
         if (tree.Type == TreeNodeType.AND)
         {
-            var topNodeFeaturePresentsInCondition = conditions
-                .FindIndex(condition => condition.Name == tree.TopContent.Name) != -1;
+            var matchedCondition = conditions
+                .FirstOrDefault(condition => condition.Name == tree.TopContent.Name);
 
-            var topNodeFeaturePresentsInConsequence = tree.Content.Count > 0
-                ? command
-                    .QuantityExpression
-                    .IsVariableUsed(tree.TopContent.Name)
-                : false;
+            var conditionIsFullfilled = matchedCondition is not null && tree
+                .TopContent
+                .Values
+                .All(conditionOption => matchedCondition.Values.Contains(conditionOption));
 
-            if (topNodeFeaturePresentsInCondition)
+            var topNodeFeaturePresentsInConsequence = command
+                .QuantityExpression
+                .IsVariableUsed(tree.TopContent.Name);
+
+            if (conditions.Count == 0 && command.QuantityExpression.GetVariablesQuantity() == 0)
             {
-                var condition = conditions
-                    .First(condition => condition.Name == tree.TopContent.Name);
-
-                var conditionIsFullfilled = (tree.TopContent.Values.All(conditionOption => condition.Values.Contains(conditionOption)));
-
-                if (conditionIsFullfilled && topNodeFeaturePresentsInConsequence)
+                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
+            }
+            else if ((conditionIsFullfilled || matchedCondition is null)
+                    && tree.SavedValues.Count == command.QuantityExpression.GetVariablesQuantity()
+                    && IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
+            {
+                tree.Children[0].SavedValues = new Dictionary<string, int>(tree.SavedValues);
+                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
+            }
+            else if (conditionIsFullfilled == false && matchedCondition is not null)
+            {
+                DivideTreeByConstraintConditions(tree, conditions);
+                tree.Children[0].SavedValues = new Dictionary<string, int>(tree.SavedValues);
+                ApplyModuleConstraint(tree.Children[0], conditions, restrictions, command, modules);
+            }
+            else if (topNodeFeaturePresentsInConsequence)
+            {
+                if (tree.SavedValues.ContainsKey(tree.TopContent.Name) == false)
                 {
                     DivideTreeByModuleConstraint(tree);
                     for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
                     {
-                        if (tree.Children[childIndex].SavedValues.Count >= command.QuantityExpression.GetVariablesQuantity() &&
-                            IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
-                        {
-                            MarkToGenerateSubModules(tree.Children[childIndex].Children[0], modules, restrictions, command);
-                        }
-                        else if (tree.Children[childIndex].Children.Count > 1)
-                        {
-                            ApplyModuleConstraint(tree.Children[childIndex].Children[1], conditions, restrictions, command, modules);
-                        }
+                        ApplyModuleConstraint(tree.Children[childIndex], conditions, restrictions, command, modules);
                     }
                 }
-                else if (conditionIsFullfilled)
+                else if (tree.Children.Count >= 2)
                 {
-                    tree.Children[0].SavedValues = tree.SavedValues;
-                    if (tree.SavedValues.Count == command.QuantityExpression.GetVariablesQuantity() &&
-                        IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
-                    {
-                        MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
-                    }
-                    else
-                    {
-                        for (var i = 1; i < tree.Children.Count; i++)
-                        {
-                            ApplyModuleConstraint(tree.Children[i], conditions, restrictions, command, modules);
-                        }
-                    }
+                    tree.Children[1].SavedValues = new Dictionary<string, int>(tree.SavedValues);
+                    ApplyModuleConstraint(tree.Children[1], conditions, restrictions, command, modules);
                 }
-                else if (topNodeFeaturePresentsInConsequence)
-                {
-                    DivideTreeByConstraintConditions(tree, conditions);
-                    ApplyModuleConstraint(tree.Children[0], conditions, restrictions, command, modules);
-                }
-                else
-                {
-                    DivideTreeByConstraintConditions(tree, conditions);
-                    if (tree.Children[0].Children.Count > 1 && tree.Type == TreeNodeType.AND)
-                    {
-                        ApplyModuleConstraint(tree.Children[0].Children[1], conditions, restrictions, command, modules);
-                    }
-                    else if (tree.Type == TreeNodeType.OR)
-                    {
-                        ApplyModuleConstraint(tree.Children[0], conditions, restrictions, command, modules);
-                    }
-                }
-            }
-            else if (topNodeFeaturePresentsInConsequence)
-            {
-                DivideTreeByModuleConstraint(tree);
-                for (int childIndex = 0; childIndex != tree.Children.Count; childIndex++)
-                {
-                    if (tree.Children[childIndex].SavedValues.Count == command.QuantityExpression.GetVariablesQuantity() &&
-                            IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
-                    {
-                        MarkToGenerateSubModules(tree.Children[childIndex].Children[0], modules, restrictions, command);
-                    }
-                    else
-                    {
-                        for (var i = 1; i < tree.Children.Count; i++)
-                        {
-                            ApplyModuleConstraint(tree.Children[i], conditions, restrictions, command, modules);
-                        }
-                    }
-                }
-            }
-            else if (conditions.Count == 0 && command.QuantityExpression.GetVariablesQuantity() == 0)
-            {
-                MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
             }
             else
             {
-                for (var i = 1; i < tree.Children.Count; i++)
+                if (tree.Children.Count >= 2)
                 {
-                    ApplyModuleConstraint(tree.Children[i], conditions, restrictions, command, modules);
+                    tree.Children[1].SavedValues = new Dictionary<string, int>(tree.SavedValues);
+                    ApplyModuleConstraint(tree.Children[1], conditions, restrictions, command, modules);
                 }
             }
         }
@@ -257,16 +214,12 @@ public class Builder
 
     void MarkToGenerateSubModules(BuilderTreeNode node, List<Module> modules, List<Feature> restrictions, GenerateCommand command)
     {
-        var aaa = new Dictionary<string, int>();
-        node.SavedValues.ToList().ForEach(saved => aaa.Add(saved.Key, saved.Value));
-        int amount = Math.Max(0, command.QuantityExpression.Calculate(aaa));
+        int amount = Math.Max(0, command.QuantityExpression.Calculate(node.SavedValues));
 
         int moduleIndex = modules.FindIndex(module => module.Name == command.ModuleName);
 
         for (int i = 0; i != node.Children.Count; i++)
         {
-            node.Children[i].Type = TreeNodeType.AND;
-
             node.Children[i].GenerateInstructions.Add(new ModuleGenerateInstruction(
                 moduleIndex,
                 amount,
@@ -357,7 +310,8 @@ public class Builder
                         ModuleList = new List<ModuleInstanceName>() { tree.CurrentModule },
                         Value = new Feature(tree.TopContent)
                     }
-                }
+                },
+                SavedValues = new Dictionary<string, int>(subTree.SavedValues)
             };
 
             subTree.Children[0] = leftSub;
@@ -369,17 +323,12 @@ public class Builder
                 );
             }
 
+            optionNode.SavedValues = new Dictionary<string, int>(subTree.SavedValues);
             leftSub.Children.Add(optionNode);
 
             for (int i = 1; i < subTree.Children.Count; i++)
             {
-                if (subTree.Children[1].SavedValues.ContainsKey(tree.TopContent.Name) == false)
-                {
-                    subTree.Children[1].SavedValues.Add(
-                        tree.TopContent.Name,
-                        int.Parse(optionNode.TopContent.Values[0])
-                    );
-                }
+                subTree.Children[i].SavedValues = new Dictionary<string, int>(subTree.SavedValues);
             }
             subTree.Type = TreeNodeType.AND;
             return subTree;

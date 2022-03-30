@@ -47,10 +47,10 @@ public class BuilderTreeNode
             var currentNode = queue.Dequeue();
             var newNode = new TreeNode()
             {
-                Type = currentNode.Type
+                Type = currentNode.Type,
+                Content = currentNode.Content,
+                SavedValues = currentNode.SavedValues
             };
-
-            newNode.Content = currentNode.Content;
 
             foreach (var child in currentNode.Children)
             {

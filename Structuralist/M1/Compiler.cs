@@ -11,6 +11,14 @@ public static class M1Compiler
         var model = new SyntaxParser()
             .GetModel(tokens);
 
+        var semanticErrors = new SemanticParser()
+            .SemanticCheck(model);
+
+        if (semanticErrors.Count > 0)
+        {
+            throw new SemanticErrorsException(semanticErrors);
+        }
+
         return new Builder()
             .Build(model);
     }
