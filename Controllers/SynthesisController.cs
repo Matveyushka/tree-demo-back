@@ -29,16 +29,14 @@ namespace tree_demo_back.Controllers
         {
             var tree = M1Compiler.Compile(input.M1Code);
 
-            var m2model = M2Compiler.Compile(input.M2Code);
-
-            var structura = m2model.GenerateStructure(input.Identifier);
+            var m2Model = M2Compiler.Compile(input.M2Code);
 
             var genotypeStructure = tree.GetGenotypeStructure();
 
             var geneticSolver = new GeneticSolver<Dictionary<int, int>>
             {
-                PopulationSize = 50,
-                Fitness = GetEstimator(tree, m2model),
+                PopulationSize = 10,
+                Fitness = BenchmarkTest.ModuleEstimator.GetEstimator(tree, m2Model),
                 Initializer = Initializers.getSimpleInitializer(genotypeStructure),
                 Selector = Selectors.rankSelection,
                 Crossover = Crossovers.randomCrossover,
@@ -51,14 +49,17 @@ namespace tree_demo_back.Controllers
             //logger.LogInformation(geneticSolver.getBestEvaluation().ToString());
 
             var time = new TimeEstimator();
-            for (int i = 0; i != 10; i++)
+            time.Begin();
+            for (int i = 0; i != 200; i++)
             {
                 geneticSolver.nextGeneration();
                 //logger.LogInformation("Generation {1}: {2}", i + 1, geneticSolver.getBestEvaluation());
             }
+            time.End();
+
 
             logger.LogInformation("Result is: {1}", geneticSolver.getBestEvaluation());
-            
+
             return Ok();
         }
 
@@ -70,7 +71,7 @@ namespace tree_demo_back.Controllers
                 foreach (var submodule in submodules.Value)
                 {
                     estimation += EstimateModule(submodule);
-                }   
+                }
             }
             return estimation + 1 + module.Links.Count;
         }

@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using BenchmarkDotNet.Running;
+using BenchmarkTest;
 
 namespace tree_demo_back
 {
@@ -13,7 +7,14 @@ namespace tree_demo_back
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            if (args.Contains("--benchmark"))
+            {
+                var summary = BenchmarkRunner.Run<Test>();
+            }
+            else
+            {
+                CreateHostBuilder(args).Build().Run();
+            }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>

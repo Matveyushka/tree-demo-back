@@ -1,6 +1,8 @@
 namespace Genetic;
 public static class Mutagens
 {
+    private static Random rnd = new Random();
+
     private static Mutagen<Dictionary<int, int>> getUniformMutagenWithRate(
         Dictionary<int, int> chromosomeDimensions,
         string name,
@@ -11,8 +13,6 @@ public static class Mutagens
             Name = name,
             Mutate = (Dictionary<int, int> chromosome) =>
             {
-                Random rnd = new Random();
-
                 var orNodeIndices = chromosome.Keys;
                 var mutatedChromosome = new Dictionary<int, int>();
 
@@ -39,8 +39,6 @@ public static class Mutagens
             Name = name,
             Mutate = (Dictionary<int, int> chromosome) =>
             {
-                Random rnd = new Random();
-
                 var orNodeIndices = chromosome.Keys;
                 var mutatedChromosome = new Dictionary<int, int>();
 
