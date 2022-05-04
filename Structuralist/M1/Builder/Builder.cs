@@ -132,12 +132,9 @@ public class Builder
 
         var currentFeatureIndex = currentModule.Features.FindIndex(Feature => Feature.Name == currentFeatureName);
 
-        var conditionFeatures = conditions.Select(condition => condition.Name).ToList();
-
         var expressionVariables = command.QuantityExpression.GetVariables();
 
-        return currentFeatureIndex >= GetDeepestFeatureIndex(currentModule, conditionFeatures)
-            && currentFeatureIndex >= GetDeepestFeatureIndex(currentModule, expressionVariables);
+        return expressionVariables.All(ev => tree.SavedValues.Keys.Contains(ev));
     }
 
     private void ApplyModuleConstraint(
@@ -166,8 +163,9 @@ public class Builder
                 MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
             }
             else if ((conditionIsFullfilled || matchedCondition is null)
-                    && tree.SavedValues.Count == command.QuantityExpression.GetVariablesQuantity()
-                    && IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules))
+                    && tree.SavedValues.Count >= command.QuantityExpression.GetVariablesQuantity()
+                    && IsTreeDepthCoveringModuleConstraint(tree.TopContent.Name, conditions, command, tree, modules)
+                    && (conditions.Count == 0 || matchedCondition == conditions.Last()))
             {
                 tree.Children[0].SavedValues = new Dictionary<string, int>(tree.SavedValues);
                 MarkToGenerateSubModules(tree.Children[0], modules, restrictions, command);
@@ -228,11 +226,16 @@ public class Builder
         }
     }
 
-    void GenerateSubModules(BuilderTreeNode tree, List<Module> modules, int depth)
+    void GenerateSubModules(BuilderTreeNode tree, List<Module> modules, int depth, Dictionary<int, int> submodulesIndexes = null!)
     {
         if (depth >= this.limit)
         {
             return;
+        }
+
+        if (submodulesIndexes is null)
+        {
+            submodulesIndexes = new Dictionary<int, int>();
         }
 
         if (tree.GenerateInstructions.Count > 0)
@@ -248,7 +251,6 @@ public class Builder
                 }
             });
             tree.Type = TreeNodeType.AND;
-            var submodulesIndexes = new Dictionary<int, int>();
             tree.GenerateInstructions.ForEach(instruction =>
             {
                 var submoduleIndexBegin = submodulesIndexes.ContainsKey(instruction.ModuleIndex)
@@ -270,7 +272,7 @@ public class Builder
                         );
                     }
                 }
-                if (submoduleIndexBegin == 0)
+                if (submodulesIndexes.ContainsKey(instruction.ModuleIndex) == false)
                 {
                     submodulesIndexes.Add(instruction.ModuleIndex, instruction.Amount);
                 }
@@ -284,7 +286,7 @@ public class Builder
         {
             for (var childIndex = 0; childIndex != tree.Children.Count; childIndex++)
             {
-                GenerateSubModules(tree.Children[childIndex], modules, depth);
+                GenerateSubModules(tree.Children[childIndex], modules, depth, submodulesIndexes);
             }
         }
     }

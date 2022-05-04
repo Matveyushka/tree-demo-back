@@ -35,45 +35,79 @@ namespace tree_demo_back.Controllers
 
             var geneticSolver = new GeneticSolver<Dictionary<int, int>>
             {
-                PopulationSize = 10,
-                Fitness = BenchmarkTest.ModuleEstimator.GetEstimator(tree, m2Model),
+                PopulationSize = 50,
+                Fitness = GetEstimator(tree, m2Model),
                 Initializer = Initializers.getSimpleInitializer(genotypeStructure),
                 Selector = Selectors.rankSelection,
                 Crossover = Crossovers.randomCrossover,
-                Mutagen = Mutagens.getLightBoundaryMutagen(genotypeStructure),
+                Mutagen = Mutagens.getLightUniformMutagen(genotypeStructure),
                 Elite = 1
             };
 
             geneticSolver.Init();
 
-            //logger.LogInformation(geneticSolver.getBestEvaluation().ToString());
+            logger.LogInformation(geneticSolver.getBestEvaluation().ToString());
+
+            var cktMapper = new SpiceCktMapper();
 
             var time = new TimeEstimator();
-            time.Begin();
-            for (int i = 0; i != 200; i++)
+            var i = 0;
+            while (true)
             {
                 geneticSolver.nextGeneration();
-                //logger.LogInformation("Generation {1}: {2}", i + 1, geneticSolver.getBestEvaluation());
+                logger.LogInformation("Generation {1}: {2}", ++i, geneticSolver.getBestEvaluation());
             }
-            time.End();
-
 
             logger.LogInformation("Result is: {1}", geneticSolver.getBestEvaluation());
+
+            var ckt = cktMapper.Map(m2Model.GenerateStructure(ModuleIdentifier.ExtractFrom(tree.ToList(), geneticSolver.getOrderedPopulation().First().Chromo)!));
 
             return Ok();
         }
 
         private double EstimateModule(Structuralist.M2.Output.Module module)
         {
+            var cktMapper = new SpiceCktMapper();
+
+            var ckt = cktMapper.Map(module);
+
+            var simulator = new CircuitSimulator();
+
+            var results = simulator.Simulate(ckt);
+
             double estimation = 0;
-            foreach (var submodules in module.Submodules)
+
+            for (int i = 0; i != results.Count; i++)
             {
-                foreach (var submodule in submodules.Value)
+                var res = results[i];
+                if (i <= 29)
                 {
-                    estimation += EstimateModule(submodule);
+                    if (res > 0.1)
+                    {
+                        estimation += Math.Pow((1 + res - 0.1) * (1 + res - 0.1) * (1 + res - 0.1), 2);
+                    }
+                    else if (res < -0.1)
+                    {
+                        estimation += Math.Pow((-0.1 - res + 1) * (-0.1 - res + 1) * (-0.1 - res + 1), 2);
+                    }
+                }
+                else if (i <= 39)
+                {
+                    if (res > -10)
+                    {
+                        estimation += (res + 10) * (res + 10);
+                    }
+                }
+                else
+                {
+                    if (res > -20)
+                    {
+                        estimation += (res + 20) * (res + 20);
+                    }
                 }
             }
-            return estimation + 1 + module.Links.Count;
+
+            return -estimation;
         }
 
         private Func<Dictionary<int, int>, double> GetEstimator(TreeNode[] tree, M2Model m2model) => id =>

@@ -80,6 +80,10 @@ public class ModuleIdentifier
                         currentId.Submodules.Add(module.Name, new List<ModuleIdentifier>());
                     }
                     var submodules = currentId.Submodules[module.Name];
+                    while (currentId.Submodules[module.Name].Count <= module.Index - 1)
+                    {
+                        currentId.Submodules[module.Name].Add(null);
+                    }
                     if (currentId.Submodules[module.Name].Count <= module.Index)
                     {
                         currentId.Submodules[module.Name].Add(new ModuleIdentifier{

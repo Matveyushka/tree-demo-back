@@ -15,9 +15,10 @@ public class RectangleModule : Module
         string name,
         Dictionary<string, List<Module>> submodules, 
         List<Link> links,        
+        Dictionary<string, string> features,
         int? x,
         int? y)
-         : base(name, submodules, links, x, y)
+         : base(name, submodules, links, features, x, y)
     {
         this.West = west;
         this.North = north;

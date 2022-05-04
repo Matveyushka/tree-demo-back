@@ -10,4 +10,15 @@ public class DirectedPortIndex : Structuralist.M2.Output.PortIndex
         this.PortIndex = portIndex;
         this.PortDirection = portDirection;
     }
+
+    public override bool Equals(PortIndex? other)
+    {
+        if (other is DirectedPortIndex otherPortIndex)
+        {
+            return this.PortIndex == otherPortIndex.PortIndex
+                && this.PortDirection == otherPortIndex.PortDirection;
+        }
+
+        return false;
+    }
 }

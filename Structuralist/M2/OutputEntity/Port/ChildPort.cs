@@ -10,4 +10,16 @@ public class ChildPort : Port
         this.SubmoduleName = submoduleName;
         this.SubmoduleIndex = submoduleIndex;
     }
+
+    public override bool Equals(Port? other)
+    {
+        if (other is ChildPort otherChildPort)
+        {
+            return this.SubmoduleName == otherChildPort.SubmoduleName
+                && this.SubmoduleIndex == otherChildPort.SubmoduleIndex
+                && this.PortIndex.Equals(otherChildPort.PortIndex);
+        }
+
+        return false;
+    }
 }

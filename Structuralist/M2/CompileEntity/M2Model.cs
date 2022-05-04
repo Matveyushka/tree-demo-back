@@ -57,6 +57,7 @@ public class M2Model
         {
             submodules.Add(submoduleName, new List<Structuralist.M2.Output.Module>());
             var submodulesQuantity = moduleIdentifier.Submodules[submoduleName].Count;
+            var realIndex = 0;
             for (var submoduleIndex = 0; submoduleIndex != moduleIdentifier.Submodules[submoduleName].Count; submoduleIndex++)
             {
                 var positionRules = M2Module
@@ -64,19 +65,23 @@ public class M2Model
                     .FirstOrDefault(positionRule => positionRule.ModuleName == submoduleName)?
                     .Rules
                     .FirstOrDefault(rule => rule.Conditions.All(condition => condition.Invoke(submoduleIndex, submodulesQuantity)));
-                
+
                 int? subX = null;
                 int? subY = null;
 
                 if (positionRules is not null)
                 {
-                    subX = positionRules.Position.X.Calculate(new Dictionary<string, int>() { { "I", submoduleIndex }, { "N", submodulesQuantity } });
-                    subY = positionRules.Position.Y.Calculate(new Dictionary<string, int>() { { "I", submoduleIndex }, { "N", submodulesQuantity } });
+                    subX = positionRules.Position.X.Calculate(new Dictionary<string, int>() { { "I", realIndex }, { "N", submodulesQuantity } });
+                    subY = positionRules.Position.Y.Calculate(new Dictionary<string, int>() { { "I", realIndex }, { "N", submodulesQuantity } });
                 }
 
-                submodules[submoduleName].Add(GenerateStructure(
-                    moduleIdentifier.Submodules[submoduleName][submoduleIndex], subX, subY    
-                ));
+                if (moduleIdentifier.Submodules[submoduleName][submoduleIndex] is not null)
+                {
+                    submodules[submoduleName].Add(GenerateStructure(
+                        moduleIdentifier.Submodules[submoduleName][submoduleIndex], subX, subY
+                    ));
+                    realIndex++;
+                }
             }
         }
 
@@ -96,20 +101,20 @@ public class M2Model
                         {
                             continue;
                         }
-                        for (int i = 0; i != moduleIdentifier.Submodules[moduleList.Name].Count; i++)
+                        for (int i = 0; i != submodules[moduleList.Name].Count; i++)
                         {
                             bool appropriate = true;
                             foreach (var condition in linkRule.Conditions)
                             {
-                                appropriate = appropriate && condition.Invoke(i, moduleIdentifier.Submodules[moduleList.Name].Count);
+                                appropriate = appropriate && condition.Invoke(i, submodules[moduleList.Name].Count);
                             }
                             if (appropriate)
                             {
                                 foreach (var link in linkRule.Links)
                                 {
                                     links.Add(new Output.Link(
-                                        GeneratePort(link.From, i, moduleIdentifier.Submodules[moduleList.Name].Count),
-                                        GeneratePort(link.To, i, moduleIdentifier.Submodules[moduleList.Name].Count)
+                                        GeneratePort(link.From, i, submodules[moduleList.Name].Count),
+                                        GeneratePort(link.To, i, submodules[moduleList.Name].Count)
                                     ));
                                 }
                             }
@@ -121,11 +126,11 @@ public class M2Model
 
         if (M2Module.PortMap is CirclePortMap circlePortMap)
         {
-            return new Output.CircleModule(circlePortMap.Ports, M2Module.Name, submodules, links, x, y);
+            return new Output.CircleModule(circlePortMap.Ports, M2Module.Name, submodules, links, moduleIdentifier.Features, x, y);
         }
         else if (M2Module.PortMap is RectanglePortMap rectanglePortMap)
         {
-            return new Output.RectangleModule(rectanglePortMap.West, rectanglePortMap.North, rectanglePortMap.East, rectanglePortMap.South, M2Module.Name, submodules, links, x, y);
+            return new Output.RectangleModule(rectanglePortMap.West, rectanglePortMap.North, rectanglePortMap.East, rectanglePortMap.South, M2Module.Name, submodules, links, moduleIdentifier.Features, x, y);
         }
         else
         {
