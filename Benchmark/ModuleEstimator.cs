@@ -1,5 +1,6 @@
-using Structuralist.M1;
+using Genetic;
 using Structuralist.M1M2;
+using Structuralist.M1Tree;
 using Structuralist.M2;
 
 namespace BenchmarkTest;
@@ -19,7 +20,7 @@ static class ModuleEstimator
         return estimation + 1 + module.Links.Count;
     }
 
-    public static Func<Dictionary<int, int>, double> GetEstimator(TreeNode[] tree, M2Model m2model){
+    public static Func<Genotype, double> GetEstimator(TreeNode[] tree, M2Model m2model){
         var treeList = tree.ToList();
         return id => EstimateModule(m2model.GenerateStructure(ModuleIdentifier.ExtractFrom(treeList, id)!));
     }  

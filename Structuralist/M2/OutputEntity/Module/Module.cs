@@ -9,15 +9,16 @@ public abstract class Module
         = new Dictionary<string, List<Module>>();
     public List<Link> Links { get; private set; } 
         = new List<Link>();
-
     public Dictionary<string, string> Features { get; private set; }
         = new Dictionary<string, string>();
+    public Dictionary<string, double> Parameters { get; private set; }
 
     public Module(
         string name,
         Dictionary<string, List<Module>> submodules, 
         List<Link> links,
         Dictionary<string, string> features,
+        Dictionary<string, double> parameters,
         int? x,
         int? y)
     {
@@ -27,5 +28,6 @@ public abstract class Module
         this.Submodules = submodules;
         this.Links = links;
         this.Features = features;
+        this.Parameters = parameters;
     }
 }

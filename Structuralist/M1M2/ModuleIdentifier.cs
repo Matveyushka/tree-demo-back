@@ -1,20 +1,19 @@
-using Structuralist.M1;
+using Genetic;
+using Structuralist.M1Tree;
 
 namespace Structuralist.M1M2;
 
 public class ModuleIdentifier
 {
     public string Name { get; set; } = null!;
+    public int? Index { get; set; }
+    public string? FullPath { get; set; } = null!;
     public Dictionary<string, string> Features { get; set; } = new Dictionary<string, string>();
     public Dictionary<string, List<ModuleIdentifier>> Submodules { get; set; } = new Dictionary<string, List<ModuleIdentifier>>();
+    public Dictionary<string, double>? Parameters { get; set; } = new Dictionary<string, double>();
 
     public ModuleIdentifier()
     {
-    }
-
-    public ModuleIdentifier(string name)
-    {
-        this.Name = name;
     }
 
     private static List<TreeNodeValue> ExtractContent(List<TreeNode> tree, Dictionary<int, int> genotype)
@@ -53,7 +52,26 @@ public class ModuleIdentifier
         return content;
     }
 
-    private static ModuleIdentifier? DivideContent(List<TreeNodeValue> content)
+    private static void SetParameters(
+        ModuleIdentifier id,
+        Dictionary<string, Dictionary<string, double>> parameters)
+    {
+        if (id is not null)
+        {
+            id.Parameters = parameters[id.FullPath!];
+            foreach (var name in id.Submodules)
+            {
+                foreach (var sub in id.Submodules[name.Key])
+                {
+                    SetParameters(sub, parameters);
+                }
+            }
+        }
+    }
+
+    private static ModuleIdentifier? DivideContent(
+        List<TreeNodeValue> content,
+        Dictionary<string, Dictionary<string, double>> parameters)
     {
         if (content.Count == 0)
         {
@@ -63,8 +81,8 @@ public class ModuleIdentifier
         var id = new ModuleIdentifier
         {
             Name = content[0].ModuleList[0].Name,
-            Features = new Dictionary<string, string>(),
-            Submodules = new Dictionary<string, List<ModuleIdentifier>>()
+            Index = 0,
+            FullPath = $"{content[0].ModuleList[0].Name}[0]"
         };
 
         content.ForEach(nodeValue =>
@@ -86,10 +104,11 @@ public class ModuleIdentifier
                     }
                     if (currentId.Submodules[module.Name].Count <= module.Index)
                     {
-                        currentId.Submodules[module.Name].Add(new ModuleIdentifier{
+                        currentId.Submodules[module.Name].Add(new ModuleIdentifier
+                        {
                             Name = module.Name,
-                            Features = new Dictionary<string, string>(),
-                            Submodules = new Dictionary<string, List<ModuleIdentifier>>()
+                            Index = module.Index,
+                            FullPath = $"{currentId.FullPath}{module.Name}[{module.Index}]"
                         });
                     }
                     currentId = currentId.Submodules[module.Name][module.Index];
@@ -104,11 +123,13 @@ public class ModuleIdentifier
             }
         });
 
+        SetParameters(id, parameters);
+
         return id;
     }
 
     public static ModuleIdentifier? ExtractFrom(
-        List<TreeNode> tree, 
-        Dictionary<int, int> genotype) => 
-        DivideContent(ExtractContent(tree, genotype));
+        List<TreeNode> tree,
+        Genotype genotype) =>
+            DivideContent(ExtractContent(tree, genotype.Nodes), genotype.Parameters);
 }

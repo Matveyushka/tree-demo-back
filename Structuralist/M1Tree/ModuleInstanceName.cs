@@ -1,4 +1,4 @@
-namespace Structuralist.M1;
+namespace Structuralist.M1Tree;
 
 public class ModuleInstanceName
 {

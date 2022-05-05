@@ -3,54 +3,28 @@ public static class Crossovers
 {
     private static Random rnd = new Random();
 
-    public static Crossover<Dictionary<int, int>> randomCrossover = new Crossover<Dictionary<int, int>>()
+    public static Crossover<Genotype> GetRandomCrossover(GenotypeStructure genotypeStructure) => 
+        new Crossover<Genotype>()
     {
         Name = "Random crossover",
-        Cross = (List<Dictionary<int, int>> parents) =>
+        Cross = (List<Genotype> parents) =>
         {
             var parentsAmount = parents.Count;
-            var orNodeIndices = parents[0].Keys;
-            var chromosome = new Dictionary<int, int>();
-            foreach (var orNodeIndex in orNodeIndices)
+            var nodes = new Dictionary<int, int>();
+            var parameters = new Dictionary<string, Dictionary<string, double>>();
+            foreach (var orNodeIndex in genotypeStructure.TreeDimensions.Keys)
             {
-                chromosome[orNodeIndex] = parents[rnd.Next(parentsAmount)][orNodeIndex];
-                //chromosome[orNodeIndex] = parents[0][orNodeIndex];
+                nodes.Add(orNodeIndex, parents[rnd.Next(parentsAmount)].Nodes[orNodeIndex]);
             }
-            return chromosome;
-        }
-    };
-
-    public static Crossover<Dictionary<int, int>> partiallyMappedCrossover = new Crossover<Dictionary<int, int>>()
-    {
-        Name = "Partially mapped crossover",
-        Cross = (List<Dictionary<int, int>> parents) =>
-        {
-            Random rnd = new Random((int)(DateTime.Now - new DateTime(1970, 1, 1)).TotalMilliseconds % 10000 + Thread.CurrentThread.ManagedThreadId);
-
-            var orNodeIndices = parents[0].Keys;
-            var chromosome = new Dictionary<int, int>();
-
-            var firstCut = rnd.Next(orNodeIndices.Count / 2);
-            var secondCut = rnd.Next(orNodeIndices.Count / 2, orNodeIndices.Count);
-
-            var counter = 0;
-            foreach (var orNodeIndex in orNodeIndices)
+            foreach (var sub in genotypeStructure.ParametersDimensions.Keys)
             {
-                if (counter < firstCut)
+                parameters.Add(sub, new Dictionary<string, double>());
+                foreach (var param in genotypeStructure.ParametersDimensions[sub])
                 {
-                    chromosome[orNodeIndex] = parents[0][orNodeIndex];
+                    parameters[sub].Add(param.Name, parents[rnd.Next(parentsAmount)].Parameters[sub][param.Name]);
                 }
-                else if (counter < secondCut)
-                {
-                    chromosome[orNodeIndex] = parents[1][orNodeIndex];
-                }
-                else
-                {
-                    chromosome[orNodeIndex] = parents[0][orNodeIndex];
-                }
-                counter++;
             }
-            return chromosome;
+            return new Genotype(nodes, parameters);
         }
     };
 }

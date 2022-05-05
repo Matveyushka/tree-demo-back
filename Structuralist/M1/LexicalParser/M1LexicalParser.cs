@@ -25,7 +25,8 @@ public class M1LexicalParser
         "Generate",
         "modules",
         "Create",
-        "Limit"
+        "Limit",
+        "Parameter"
     };
 
     private Regex identifierRegex = new Regex("^[A-Z][a-zA-Z0-9]*$");
@@ -33,7 +34,8 @@ public class M1LexicalParser
     private List<LiteralHandler> literalHandlers = new List<LiteralHandler>()
     {
         new NumberHandler(),
-        new EnumHandler()
+        new EnumHandler(),
+        new RealNumberHandler()
     };
 
     public LexicalParser Parser { get; }

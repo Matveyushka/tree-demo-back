@@ -6,8 +6,6 @@ public class Keyword : Token
         string value,
         int stringNumber,
         int position
-        ) : base(stringNumber, position)
-    {
-        this.Terminal = new Terminal(value);
-    }
+        ) : base(value, stringNumber, position)
+    { }
 }

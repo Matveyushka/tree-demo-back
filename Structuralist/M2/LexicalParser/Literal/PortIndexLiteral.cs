@@ -34,9 +34,9 @@ public class PortIndex
 public class PortIndexLiteral : Token
 {
     public PortIndex Value { get; set; }
-    public PortIndexLiteral(string value, int stringNumber, int position) : base(stringNumber, position)
+    public PortIndexLiteral(string value, int stringNumber, int position) 
+        : base("portindex", stringNumber, position)
     {
-        this.Terminal = new Terminal("portindex");
         this.Value = new PortIndex(int.Parse(value.Substring(0, value.Length - 1)), ExtractPortDirection(value));
     }
 

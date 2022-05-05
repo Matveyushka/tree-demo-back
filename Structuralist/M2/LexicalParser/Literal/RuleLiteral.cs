@@ -6,9 +6,9 @@ public class RuleLiteral : Token
 {
     public string Value;
 
-    public RuleLiteral(string value, int stringNumber, int position) : base(stringNumber, position)
+    public RuleLiteral(string value, int stringNumber, int position) 
+        : base("rule", stringNumber, position)
     {
-        this.Terminal = new Terminal("rule");
         this.Value = value;
     }
 }

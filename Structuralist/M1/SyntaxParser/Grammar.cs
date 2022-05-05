@@ -14,9 +14,15 @@ public static class M1Grammar
         GrammarRule.FromString("MODULES = MODULES MODULE", Actions.fillModules),
 
         GrammarRule.FromString("MODULE = module identifier", Actions.createModule),
+        GrammarRule.FromString("MODULE = MODULE PARAMETER", Actions.addParameterToModule),
         GrammarRule.FromString("MODULE = MODULE FEATURE", Actions.addFeatureToModule),
         GrammarRule.FromString("MODULE = MODULE FEATURERULE", Actions.addFeatureRuleToModule),
         GrammarRule.FromString("MODULE = MODULE GENERATE", Actions.addGenerateRuleToModule),
+
+        GrammarRule.FromString("PARAMETER = parameter identifier real real", Actions.createParameter),
+        GrammarRule.FromString("PARAMETER = parameter identifier number real", Actions.createParameter),
+        GrammarRule.FromString("PARAMETER = parameter identifier real number", Actions.createParameter),
+        GrammarRule.FromString("PARAMETER = parameter identifier number number", Actions.createParameter),
 
         GrammarRule.FromString("FEATURE = feature identifier FEATUREVALUE", Actions.createFeature),
         GrammarRule.FromString("FEATURE = FEATURE FEATUREVALUE", Actions.fillFeature),

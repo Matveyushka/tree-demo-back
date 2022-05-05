@@ -10,9 +10,10 @@ public class CircleModule : Module
         Dictionary<string, List<Module>> submodules,
         List<Link> links,
         Dictionary<string, string> features,
+        Dictionary<string, double> parameters,
         int? x,
         int? y)
-         : base(name, submodules, links, features, x, y)
+         : base(name, submodules, links, features, parameters, x, y)
     {
         this.PortQuantity = portQuantity;
     }

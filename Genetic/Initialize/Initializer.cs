@@ -1,8 +1,8 @@
 namespace Genetic;
-public class InitializerGetter<Chromosome>
+public class InitializerGetter<ChromosomeStructure, Chromosome>
 {
     public string Name { get; set; } = null!;
-    public Func<Chromosome, Initializer<Chromosome>> Get { get; set; } = null!;
+    public Func<ChromosomeStructure, Initializer<Chromosome>> Get { get; set; } = null!;
 }
 public class Initializer<Chromosome>
 {

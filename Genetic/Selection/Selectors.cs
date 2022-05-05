@@ -1,7 +1,7 @@
 namespace Genetic;
 public static class Selectors
 {
-    private static Dictionary<int, int> getRandomFromNormilized(List<EvaluatedIndividual<Dictionary<int, int>>> normilizedPopulation)
+    private static Genotype getRandomFromNormilized(List<EvaluatedIndividual<Genotype>> normilizedPopulation)
     {
         Random rnd = new Random();
 
@@ -21,7 +21,7 @@ public static class Selectors
         return normilizedPopulation[normilizedPopulation.Count - 1].Chromo;
     }
 
-    private static List<Dictionary<int, int>> getRandomPairFromNormilized(List<EvaluatedIndividual<Dictionary<int, int>>> normilizedPopulation)
+    private static List<Genotype> getRandomPairFromNormilized(List<EvaluatedIndividual<Genotype>> normilizedPopulation)
     {
         Random rnd = new Random();
 
@@ -62,20 +62,20 @@ public static class Selectors
             }
         }
 
-        return new List<Dictionary<int, int>>() {
+        return new List<Genotype>() {
                 first.Chromo, second.Chromo
             };
     }
 
-    public static Selector<Dictionary<int, int>> rouletteWheelSelection = new Selector<Dictionary<int, int>>()
+    public static Selector<Genotype> rouletteWheelSelection = new Selector<Genotype>()
     {
         Name = "Roulette wheel selection",
-        Select = (List<EvaluatedIndividual<Dictionary<int, int>>> evaluatedPopulation) =>
+        Select = (List<EvaluatedIndividual<Genotype>> evaluatedPopulation) =>
         {
             double sum = evaluatedPopulation
                 .Aggregate(0.0, (accumulator, value) => accumulator + value.Evaluation);
 
-            var normilizedPopulation = evaluatedPopulation.Select(individual => new EvaluatedIndividual<Dictionary<int, int>>(
+            var normilizedPopulation = evaluatedPopulation.Select(individual => new EvaluatedIndividual<Genotype>(
                 individual.Chromo,
                 individual.Evaluation / sum
             )).ToList();
@@ -84,10 +84,10 @@ public static class Selectors
         }
     };
 
-    public static Selector<Dictionary<int, int>> rankSelection = new Selector<Dictionary<int, int>>()
+    public static Selector<Genotype> rankSelection = new Selector<Genotype>()
     {
         Name = "Rank selection",
-        Select = (List<EvaluatedIndividual<Dictionary<int, int>>> evaluatedPopulation) =>
+        Select = (List<EvaluatedIndividual<Genotype>> evaluatedPopulation) =>
         {
             var orderedPopualtion = evaluatedPopulation.OrderByDescending(individual => individual.Evaluation).ToList();
 
@@ -95,7 +95,7 @@ public static class Selectors
 
             var rank = orderedPopualtion.Count();
 
-            var normilizedPopulation = evaluatedPopulation.Select(individual => new EvaluatedIndividual<Dictionary<int, int>>(
+            var normilizedPopulation = evaluatedPopulation.Select(individual => new EvaluatedIndividual<Genotype>(
                 individual.Chromo,
                 (double)(rank--) / rankSum
             )).ToList();
@@ -104,10 +104,10 @@ public static class Selectors
         }
     };
 
-    public static Selector<Dictionary<int, int>> tournamentSelection = new Selector<Dictionary<int, int>>()
+    public static Selector<Genotype> tournamentSelection = new Selector<Genotype>()
     {
         Name = "Tournament selection",
-        Select = (List<EvaluatedIndividual<Dictionary<int, int>>> evaluatedPopulation) =>
+        Select = (List<EvaluatedIndividual<Genotype>> evaluatedPopulation) =>
         {
             Random rnd = new Random();
 
@@ -123,16 +123,16 @@ public static class Selectors
             var secondParent = evaluatedPopulation[thirdIndividualIndex].Evaluation > evaluatedPopulation[fourthIndividualIndex].Evaluation ?
                 evaluatedPopulation[thirdIndividualIndex].Chromo : evaluatedPopulation[fourthIndividualIndex].Chromo;
 
-            return new List<Dictionary<int, int>>() {
+            return new List<Genotype>() {
                     firstParent, secondParent
             };
         }
     };
 
-    public static Selector<Dictionary<int, int>> sigmaSelection = new Selector<Dictionary<int, int>>()
+    public static Selector<Genotype> sigmaSelection = new Selector<Genotype>()
     {
         Name = "Sigma selection",
-        Select = (List<EvaluatedIndividual<Dictionary<int, int>>> evaluatedPopulation) =>
+        Select = (List<EvaluatedIndividual<Genotype>> evaluatedPopulation) =>
         {
             var size = evaluatedPopulation.Count();
 
@@ -146,14 +146,14 @@ public static class Selectors
                 .Aggregate(0.0, (acc, value) => acc + Math.Pow((value.Evaluation - average), 2)))
             );
 
-            var sigmaEvaluatedPopulation = evaluatedPopulation.Select(individual => new EvaluatedIndividual<Dictionary<int, int>>(
+            var sigmaEvaluatedPopulation = evaluatedPopulation.Select(individual => new EvaluatedIndividual<Genotype>(
                 individual.Chromo,
                 1 + (individual.Evaluation - average) / (2 * s)
             )).ToList();
 
             var sigmaSum = sigmaEvaluatedPopulation.Aggregate(0.0, (acc, value) => acc + value.Evaluation);
 
-            var normilizedPopulation = sigmaEvaluatedPopulation.Select(individual => new EvaluatedIndividual<Dictionary<int, int>>(
+            var normilizedPopulation = sigmaEvaluatedPopulation.Select(individual => new EvaluatedIndividual<Genotype>(
                 individual.Chromo,
                 individual.Evaluation / sigmaSum
             )).ToList();
@@ -162,20 +162,20 @@ public static class Selectors
         }
     };
 
-    private static int getGenotypeDifference(Dictionary<int, int> first, Dictionary<int, int> second)
+    private static int getGenotypeDifference(Genotype first, Genotype second)
     {
         int differenceCounter = 0;
-        foreach (var entry in first)
+        foreach (var entry in first.Nodes)
         {
-            if (entry.Value != second[entry.Key]) { differenceCounter++; }
+            if (entry.Value != second.Nodes[entry.Key]) { differenceCounter++; }
         }
         return differenceCounter;
     }
 
-    public static Selector<Dictionary<int, int>> genOutbreedingSelection = new Selector<Dictionary<int, int>>()
+    public static Selector<Genotype> genOutbreedingSelection = new Selector<Genotype>()
     {
         Name = "Genotype outbreeding selection",
-        Select = (List<EvaluatedIndividual<Dictionary<int, int>>> evaluatedPopulation) =>
+        Select = (List<EvaluatedIndividual<Genotype>> evaluatedPopulation) =>
         {
             Random rnd = new Random();
 
@@ -187,16 +187,16 @@ public static class Selectors
 
             var secondParentIndex = differences.ToList().FindIndex(difference => difference == maxDifference);
 
-            return new List<Dictionary<int, int>>() {
+            return new List<Genotype>() {
                     evaluatedPopulation[firstParentIndex].Chromo, evaluatedPopulation[secondParentIndex].Chromo
             };
         }
     };
 
-    public static Selector<Dictionary<int, int>> fenOutbreedingSelection = new Selector<Dictionary<int, int>>()
+    public static Selector<Genotype> fenOutbreedingSelection = new Selector<Genotype>()
     {
         Name = "Phenotype outbreeding selection",
-        Select = (List<EvaluatedIndividual<Dictionary<int, int>>> evaluatedPopulation) =>
+        Select = (List<EvaluatedIndividual<Genotype>> evaluatedPopulation) =>
         {
             Random rnd = new Random();
 
@@ -208,7 +208,7 @@ public static class Selectors
 
             var secondParentIndex = differences.ToList().FindIndex(difference => difference == maxDifference);
 
-            return new List<Dictionary<int, int>>() {
+            return new List<Genotype>() {
                     evaluatedPopulation[firstParentIndex].Chromo, evaluatedPopulation[secondParentIndex].Chromo
             };
         }

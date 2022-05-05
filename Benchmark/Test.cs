@@ -3,17 +3,19 @@ using Structuralist.M1M2;
 using Structuralist.M2;
 using Genetic;
 using BenchmarkDotNet.Attributes;
+using Structuralist.M1Tree;
 
 namespace BenchmarkTest;
 
 [CsvExporter]
 public class Test
 {
-    Random rnd = new Random();
-    TreeNode[] tree = M1Compiler.Compile(CodeProvider.m1Code);
+   /* Random rnd = new Random();
+    TreeNode[] tree = new M1TreeBuilder().Build(M1Compiler.Compile(CodeProvider.m1Code));
     List<TreeNode> treeList;
+    M1Model m1Model = M1Compiler.Compile(CodeProvider.m1Code);
     M2Model m2Model = M2Compiler.Compile(CodeProvider.m2Code);
-    GeneticSolver<Dictionary<int, int>> GeneticSolver;
+    //GeneticSolver<Dictionary<int, int>> GeneticSolver;
 
     Dictionary<int, int> GenotypeStructure;
 
@@ -23,13 +25,13 @@ public class Test
 
     public Test()
     {
-        GenotypeStructure = GetGenotypeStructure();
+        //GenotypeStructure = GetGenotypeStructure();
         RandomGenotypes = new int[3].Select(_ => GetRandomGenotype());
         RandomModulesIds = RandomGenotypes.Select(gene => GetModuleId(gene));
         RandomStructures = RandomModulesIds.Select(id => GenerateStructure(id));
         treeList = tree.ToList();
 
-        GeneticSolver = new GeneticSolver<Dictionary<int, int>>
+        /*GeneticSolver = new GeneticSolver<Dictionary<int, int>>
         {
             PopulationSize = 10,
             Fitness = ModuleEstimator.GetEstimator(tree, m2Model),
@@ -55,9 +57,9 @@ public class Test
     }
 
     //[Benchmark]
-    public Dictionary<int, int> GetGenotypeStructure()
+    public GenotypeStructure GetGenotypeStructure()
     {
-        return tree.GetGenotypeStructure();
+        return new GenotypeStructure(tree, m1Model);
     }
 
     //[Benchmark]
@@ -149,5 +151,5 @@ public class Test
     public void Run()
     {
         GeneticSolver.nextGeneration();
-    }
+    }*/
 }

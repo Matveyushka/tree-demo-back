@@ -2,7 +2,7 @@ namespace Structuralist.M1;
 
 public static class M1Compiler
 {
-    public static TreeNode[] Compile(string code)
+    public static M1Model Compile(string code)
     {
         var tokens = new M1LexicalParser()
             .Parser
@@ -19,7 +19,6 @@ public static class M1Compiler
             throw new SemanticErrorsException(semanticErrors);
         }
 
-        return new Builder()
-            .Build(model);
+        return model;
     }
 }

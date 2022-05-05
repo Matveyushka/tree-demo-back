@@ -1,10 +1,19 @@
 using System.Text;
+using Structuralist.M1;
 
-namespace Structuralist.M1;
+namespace Structuralist.M1Tree;
 
-public class Builder
+public class M1TreeBuilder
 {
     private int limit = 5;
+
+    private bool HasTopTreeFeatureInConditions(FeatureRule rule, BuilderTreeNode tree) =>
+        rule.Conditions
+            .FindIndex(condition => condition.Name == tree.TopContent.Name) != -1;
+
+    private bool HasTopTreeFeatureInConsequence(FeatureRule rule, BuilderTreeNode tree) =>
+        rule.Consequences
+            .FindIndex(consequence => consequence.Name == tree.TopContent.Name) != -1;
 
     private void ApplyValidOptions(
         BuilderTreeNode tree,
@@ -63,7 +72,7 @@ public class Builder
     {
         if (tree.Type == TreeNodeType.AND)
         {
-            if (rule.HasTopTreeFeatureInConditions(tree))
+            if (HasTopTreeFeatureInConditions(rule, tree))
             {
                 DivideTreeByConstraintConditions(tree, rule.Conditions);
                 if (tree.Children[0].Children.Count > 1)
@@ -73,7 +82,7 @@ public class Builder
             }
             else
             {
-                if (rule.HasTopTreeFeatureInConsequence(tree))
+                if (HasTopTreeFeatureInConsequence(rule, tree))
                 {
                     var suitableConsequence = rule
                         .Consequences

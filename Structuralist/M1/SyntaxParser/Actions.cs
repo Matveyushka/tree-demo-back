@@ -112,6 +112,13 @@ public static class Actions
             Consequences = (List<Feature>)values[0]
         };
 
+    public static Func<List<object>, RealParameter> createParameter = values =>
+        new RealParameter(
+            ((Identifier)values[2]).Value,
+            ((RealNumber)values[1]).Value,
+            ((RealNumber)values[0]).Value
+        );
+
     public static Func<List<object>, Feature> createFeature = values =>
         new Feature() {
             Name = ((Identifier)values[1]).Value,
@@ -120,7 +127,6 @@ public static class Actions
                 ? FeatureType.INTEGER
                 : FeatureType.ENUM
         };
-
 
     public static Func<List<object>, Feature> fillFeature = values =>
         {
@@ -137,6 +143,13 @@ public static class Actions
         new Module()
         {
             Name = ((Identifier)values[0]).Value
+        };
+
+    public static Func<List<object>, Module> addParameterToModule = values =>
+        {
+            var module = (Module)values[1];
+            module.Parameters.Add((RealParameter)values[0]);
+            return module;
         };
 
     public static Func<List<object>, Module> addFeatureToModule = values =>

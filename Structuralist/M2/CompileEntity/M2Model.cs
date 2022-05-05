@@ -126,11 +126,30 @@ public class M2Model
 
         if (M2Module.PortMap is CirclePortMap circlePortMap)
         {
-            return new Output.CircleModule(circlePortMap.Ports, M2Module.Name, submodules, links, moduleIdentifier.Features, x, y);
+            return new Output.CircleModule(
+                circlePortMap.Ports, 
+                M2Module.Name, 
+                submodules, 
+                links, 
+                moduleIdentifier.Features, 
+                moduleIdentifier.Parameters,
+                x, 
+                y);
         }
         else if (M2Module.PortMap is RectanglePortMap rectanglePortMap)
         {
-            return new Output.RectangleModule(rectanglePortMap.West, rectanglePortMap.North, rectanglePortMap.East, rectanglePortMap.South, M2Module.Name, submodules, links, moduleIdentifier.Features, x, y);
+            return new Output.RectangleModule(
+                rectanglePortMap.West, 
+                rectanglePortMap.North, 
+                rectanglePortMap.East, 
+                rectanglePortMap.South, 
+                M2Module.Name, 
+                submodules, 
+                links, 
+                moduleIdentifier.Features,
+                moduleIdentifier.Parameters, 
+                x, 
+                y);
         }
         else
         {
