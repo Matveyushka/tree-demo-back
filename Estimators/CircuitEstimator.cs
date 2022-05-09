@@ -26,17 +26,24 @@ public class CircuitEstimator
     }
 
     private readonly List<Limitation2D> lpfLimitations = new List<Limitation2D> {
-        new Limitation2D(new Point2D(0, 0.1), new Point2D(3000, 0.1), 1, 3),
-        new Limitation2D(new Point2D(0, -0.2), new Point2D(3000, -0.2), -1, 3),
-        new Limitation2D(new Point2D(4000, -20), new Point2D(10000, -20), 1, 1),
+        new Limitation2D(new Point2D(0, 0), new Point2D(6000, 0), 1, 1),
+        new Limitation2D(new Point2D(0, -0.2), new Point2D(5000, -0.2), -1, 1),
+        new Limitation2D(new Point2D(6000, -20), new Point2D(1e5, -20), 1, 1),
     };
 
     private readonly List<Limitation2D> hpfLimitations = new List<Limitation2D> {
         new Limitation2D(new Point2D(0, -20), new Point2D(3000, -20), 1, 1),
-        new Limitation2D(new Point2D(4500, 0.1), new Point2D(10000, 0.1), 1, 3),
-        new Limitation2D(new Point2D(4500, -0.2), new Point2D(10000, -0.2), -1, 3),
+        new Limitation2D(new Point2D(3000, 0), new Point2D(1e5, 0), 1, 1),
+        new Limitation2D(new Point2D(3500, -0.2), new Point2D(1e5, -0.2), -1, 1),
+    };
+
+    private readonly List<Limitation2D> bandLimitations = new List<Limitation2D> {
+        new Limitation2D(new Point2D(0, -20), new Point2D(4000, -20), 1, 1),
+        new Limitation2D(new Point2D(4000, 0), new Point2D(8000, 0), 1, 1),
+        new Limitation2D(new Point2D(5000, -0.2), new Point2D(7000, -0.2), -1, 1),
+        new Limitation2D(new Point2D(8000, -20), new Point2D(1e5, -20), 1, 1),
     };
 
     public Func<Genotype, double> GetEstimator(TreeNode[] tree, M2Model m2model) => id =>
-        EstimateModule(m2model.GenerateStructure(ModuleIdentifier.ExtractFrom(tree.ToList(), id)!), hpfLimitations);
+        EstimateModule(m2model.GenerateStructure(ModuleIdentifier.ExtractFrom(tree.ToList(), id)!), lpfLimitations);
 }

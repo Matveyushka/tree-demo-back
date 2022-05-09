@@ -8,7 +8,9 @@ public static class M2Compiler
             .Parser
             .GetTokens(input);
 
-        return new SyntaxParser()
+        var model = new SyntaxParser()
             .GetModel(tokens);
+
+        return model;
     }
 }

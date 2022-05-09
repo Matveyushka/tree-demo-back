@@ -56,22 +56,37 @@ namespace tree_demo_back.Controllers
             var time = new TimeEstimator();
             var i = 0;
             var e = -1000.0;
-            while (e < -0.1 && i <= 499)
+            var prevE = e;
+            var platoCounter = 0;
+            while (e < -1 && platoCounter < 200)
             {
                 geneticSolver.nextGeneration();
                 e = geneticSolver.getBestEvaluation();
+                if (prevE == e)
+                {
+                    platoCounter++;
+                }
+                else
+                {
+                    prevE = e;
+                    platoCounter = 0;
+                }
                 logger.LogInformation("Generation {1}: {2}", ++i, e);
             }
 
             logger.LogInformation("Result is: {1}", geneticSolver.getBestEvaluation());
 
+            var bestChromo = geneticSolver.getOrderedPopulation().First().Chromo;
+
             var ckt = cktMapper.Map(m2Model.GenerateStructure(ModuleIdentifier.ExtractFrom(
-                tree.ToList(), 
-                geneticSolver.getOrderedPopulation().First().Chromo)!));
+                tree.ToList(),
+                bestChromo)!));
 
             var writer = new CircuitFileWriter();
 
             writer.Write(ckt, @"C:\Users\user\Desktop\filter.ckt");
+
+            geneticSolver.Fitness.Invoke(bestChromo);
 
             return Ok();
         }

@@ -1,11 +1,14 @@
 using SpiceSharp;
 using SpiceSharp.Components;
+using SpiceSharp.Entities;
 using Structuralist.M2.Output;
 
 public class SpiceCktMapper
 {
-    private void AddLc(Structuralist.M2.Output.Module module, Circuit ckt, List<List<Port>> cktLinks)
+    private List<List<Port>> LinkNodes(Structuralist.M2.Output.Module module)
     {
+        var cktLinks = new List<List<Port>>();
+
         module.Links.ForEach(link =>
         {
             var cktLinkFrom = cktLinks.FirstOrDefault(l => l.Contains(link.From));
@@ -42,6 +45,20 @@ public class SpiceCktMapper
                 throw new Exception($"НИ ПАНЯТНА");
             }
         });
+
+        return cktLinks;
+    }
+
+    private Subcircuit GetLc(Structuralist.M2.Output.Module module, int index, string pos, string neg)
+    {
+        if (module.Name != "HPF" && module.Name != "LPF" && module.Name != "BPF")
+        {
+            throw new ArgumentException("Module must be LC");
+        }
+
+        var entityCollection = new EntityCollection();
+
+        var cktLinks = LinkNodes(module);
 
         var inputPort = new SelfPort(new DirectedPortIndex(0, Structuralist.M2.PortDirection.WEST));
         var loadPort = new SelfPort(new DirectedPortIndex(0, Structuralist.M2.PortDirection.EAST));
@@ -87,7 +104,7 @@ public class SpiceCktMapper
                     : plus == zeroIndex
                     ? "0"
                     : $"_{plus}";
-                ckt.Add(new Inductor($"L{i + 1}", plusName, minusName, inductor.Parameters["Inductance"] * 1e-3));
+                entityCollection.Add(new Inductor($"L{(index + 1) * 100 + i + 1}{module.Name}", plusName, minusName, inductor.Parameters["Inductance"] * 1e-3));
             }
         }
 
@@ -127,29 +144,51 @@ public class SpiceCktMapper
                     : plus == zeroIndex
                     ? "0"
                     : $"_{plus}";
-                ckt.Add(new Capacitor($"C{i + 1}", plusName, minusName, capacitor.Parameters["Capacity"] * 1e-9));
+                entityCollection.Add(new Capacitor($"C{(index + 1) * 100 + i + 1}{module.Name}", plusName, minusName, capacitor.Parameters["Capacity"] * 1e-9));
             }
         }
+
+        var cktSubDef = new SubcircuitDefinition(entityCollection, "load", "in");
+
+        return new Subcircuit($"{module.Name}{index}", cktSubDef, pos, neg);
     }
 
     public Circuit Map(Structuralist.M2.Output.Module module)
     {
         Circuit ckt = new Circuit(
-            new VoltageSource("V1", "in", "0", 0)
+            new VoltageSource("V1", "_in", "0", 0)
             .SetParameter("acmag", 1.0)
         );
 
         var cktLinks = new List<List<Port>>();
 
-        if (module.Name == "LPF" || module.Name == "HPF")
+        if (module.Name == "LPF" || module.Name == "HPF" || module.Name == "BPF")
         {
-            AddLc(module, ckt, cktLinks);
-
-            ckt.Add(new Resistor("R1", "0", "load", 5.0e3));
-
-            return ckt;
+            ckt.Add(GetLc(module, 0, "load", "in"));
+        }
+        else if (module.Name == "Filter")
+        {
+            int intermediateNodeIndex = 0;
+            var first = module.Submodules.First().Value.First();
+            var last = module.Submodules.Last().Value.Last();
+            foreach (var sub in module.Submodules)
+            {          
+                foreach (var value in sub.Value)
+                {
+                    var inIndex = value == first ? "in" : $"inter{intermediateNodeIndex++}";
+                    var outIndex = value == last ? "load" : $"inter{intermediateNodeIndex}";
+                    ckt.Add(GetLc(value, 0, outIndex, inIndex));
+                }   
+            }
+        }
+        else
+        {
+            throw new Exception($"НЕ МОГУ РАСПОЗНАТЬ МОДУЛЬ {module.Name}");
         }
 
-        throw new Exception($"НЕ МОГУ РАСПОЗНАТЬ МОДУЛЬ {module.Name}");
+        ckt.Add(new Resistor("RL", "0", "load", 5.0e3));
+        ckt.Add(new Resistor("RIn", "in", "_in", 5.0e3));
+
+        return ckt;
     }
 }
